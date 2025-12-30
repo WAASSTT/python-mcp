@@ -1,5 +1,4 @@
-# Python virtual environment
-venv/
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -17,34 +16,88 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# IDE
-.vscode/
+# 虚拟环境
+venv/
+ENV/
+env/
+.venv
+
+# PyCharm
 .idea/
-*.swp
-*.swo
-*~
+*.iml
 
-# Logs
-tmp/
+# VS Code
+.vscode/
+*.code-workspace
+
+# 日志文件
 *.log
 logs/
+tmp/
+*.tmp
 
-# Config
-data/.config.yaml
+# 配置文件（保护敏感信息）
+server/data/.config.yaml
 .env
 .env.local
 
-# OS
-.DS_Store
-Thumbs.db
+# 音频临时文件
+tmp/asr/*
+tmp/tts/*
 
-# Old TypeScript/Node files
-node_modules/
-dist/
-*.tsbuildinfo
+# Node.js / 前端
+client/node_modules/
+client/dist/
+client/.DS_Store
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
+client/pnpm-debug.log*
+client/lerna-debug.log*
+client/.npmrc
+
+# 前端构建产物
+client/dist-ssr
+client/*.local
+
+# Editor directories and files
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 测试覆盖率
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# 备份文件
 *.bak
-coverage/
+*.backup
+*~
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 固件文件（可选，根据需要调整）
+data/bin/*
+
+# 性能测试输出
+server/performance_tester/*.log
+server/performance_tester/*.txt
