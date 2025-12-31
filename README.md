@@ -4,17 +4,18 @@
 
 **企业级实时语音交互系统**
 
-基于 Python + TypeScript + Vue.js 构建的全栈 AI 对话平台
+基于 Python + Vue + Electron 构建的跨平台 AI 对话平台
 
 集成讯飞 ASR、通义千问 LLM、火山引擎 TTS
 
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Vue.js](https://img.shields.io/badge/Vue.js-2.6-4FC08D?style=flat-square&logo=vue.js&logoColor=white)](https://vuejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?style=flat-square&logo=vue.js&logoColor=white)](https://vuejs.org/)
+[![Electron](https://img.shields.io/badge/Electron-39-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
-[快速开始](#-快速开始) • [功能特性](#-核心功能) • [文档](#-文档导航)
+[快速开始](#-快速开始) • [功能特性](#-核心功能) • [文档导航](#-文档导航)
 
 </div>
 
@@ -28,19 +29,22 @@
 
 ### 🚀 极简部署
 ```bash
-# 方式一：交互式菜单（推荐）
-./service.sh
-# 然后选择 "1) 启动所有服务"
+# 启动服务器
+cd server
+./run_server.sh start
 
-# 方式二：命令行模式
-./service.sh start all
+# 启动客户端（新终端）
+cd client
+npm install  # 首次运行需要安装依赖
+npm run dev  # 开发模式
+# 或
+npm run web  # Web 模式
 
-# 访问 http://localhost:30001
-# 开始使用！
+# 开始使用!
 ```
 
-**传统项目**：手动启动 5+ 服务，配置各种端口
-**本项目**：交互式菜单或一行命令，全部搞定
+**传统项目**:手动启动多个服务,配置各种端口
+**本项目**:独立脚本管理,支持桌面和 Web 双模式
 
 </td>
 <td width="50%">
@@ -48,8 +52,9 @@
 ### 🎯 生产级架构
 - ⚡ **超低延迟**：< 100ms 音频响应
 - 🔄 **全流式处理**：边说边识别边回复
-- 🛡️ **企业级存储**：PostgreSQL + Redis
-- 🐳 **容器化部署**：Docker 一键运行
+- 🖥️ **Electron 客户端**：Vue 3 + TypeScript 桌面应用
+- 🌐 **Web 模式**：支持浏览器访问
+- 🎯 **简单部署**：独立脚本管理
 - 📊 **完善监控**：实时状态 + 日志管理
 
 </td>
@@ -64,10 +69,9 @@
 
 <table>
 <tr>
-<td>✅ Docker</td>
-<td>✅ Python 3.10+</td>
-<td>✅ Bun</td>
-<td>✅ Node.js 18+</td>
+<td>✅ Python 3.12+</td>
+<td>✅ uv (Python 包管理器)</td>
+<td>✅ Node.js 18+ (客户端开发)</td>
 </tr>
 </table>
 
@@ -79,20 +83,22 @@ git clone https://github.com/WAASSTT/python-mcp.git
 cd python-mcp
 
 # 2️⃣ 配置密钥（获取方式见下方）
-cp data/config.yaml data/.config.yaml
-vim data/.config.yaml  # 填入 API 密钥
+cp server/config.yaml server/.config.yaml
+vim server/.config.yaml  # 填入 API 密钥
 
-# 3️⃣ 一键启动（两种方式）
+# 3️⃣ 启动服务
 
-# 方式一：交互式菜单（推荐新手）
-chmod +x service.sh && ./service.sh
-# 进入菜单后选择 "1) 启动所有服务"
+# 启动服务器
+cd server && chmod +x run_server.sh && ./run_server.sh start
 
-# 方式二：命令行（适合熟手）
-chmod +x service.sh && ./service.sh start all
+# 启动客户端（新终端）
+cd client && npm install && npm run dev
+
+# 4️⃣ 开始使用
+# Electron 窗口将自动打开，开始对话！
 ```
 
-**🎉 完成！访问 http://localhost:30001**
+**🎉 完成！Electron 桌面应用已启动，即可开始语音对话**
 
 ### API 密钥获取
 
@@ -176,20 +182,27 @@ chmod +x service.sh && ./service.sh start all
 ### 💻 开发体验
 
 ```bash
-# 交互式菜单（推荐新手）
-./service.sh                        # 🎮 进入图形化菜单
+# 服务器管理
+cd server
+./run_server.sh start    # 🚀 启动服务器
+./run_server.sh stop     # 🛑 停止服务器
+./run_server.sh restart  # 🔄 重启服务器
+./run_server.sh status   # 📊 查看状态
+./run_server.sh logs     # 📝 查看日志
 
-# 命令行模式（适合脚本）
-./service.sh start all              # 🚀 启动所有服务
-./service.sh stop manager-api       # 🛑 停止单个服务
-./service.sh restart python-server  # 🔄 重启服务
-./service.sh status                 # 📊 查看状态
-./service.sh logs client 100        # 📝 查看日志
+# 客户端开发
+cd client
+npm run dev       # 🖥️ Electron 开发模式
+npm run web       # 🌐 Web 浏览器模式
+npm run build:win # 📦 打包 Windows 应用
+npm run build:mac # 🍎 打包 macOS 应用
+npm run build:linux # 🐧 打包 Linux 应用
 ```
 
 **特性亮点**
-- ✅ **双模式管理**：交互式菜单 + 命令行，适合不同场景
-- ✅ **统一管理**：一个脚本管理所有服务
+- ✅ **双模式运行**:支持 Electron 桌面和 Web 浏览器
+- ✅ **独立管理**:服务器和客户端独立脚本,互不干扰
+- ✅ **简单直接**:命令清晰,操作便捷
 - ✅ **自动配置**：自动依赖安装和环境配置
 - ✅ **智能检测**：健康检查、端口冲突自动处理
 - ✅ **完善监控**：实时状态 + 日志管理系统
@@ -201,23 +214,24 @@ chmod +x service.sh && ./service.sh start all
 ### 系统架构图
 
 ```
-┌─────────────────┐
-│  浏览器客户端    │ :30001
-└────────┬────────┘
-         │ WebSocket + HTTP
-    ┌────┴────┬──────────┐
-    ▼         ▼          ▼
-┌────────┐ ┌────────┐ ┌────────┐
-│Manager │ │Python  │ │Database│
-│  API   │ │ Server │ │        │
-│ :30002 │ │ :30000 │ │ :5432  │
-└────────┘ └───┬────┘ └────────┘
-               │
-    ┌──────────┼──────────┐
-    ▼          ▼          ▼
-┌────────┐ ┌────────┐ ┌────────┐
-│讯飞ASR │ │通义千问│ │火山TTS │
-└────────┘ └────────┘ └────────┘
+┌─────────────────────┐
+│  Electron 客户端    │
+│ (Vue 3 桌面应用)    │
+└──────────┬──────────┘
+           │ WebSocket
+           ▼
+      ┌────────┐
+      │Python  │
+      │ Server │
+      │ :30000 │
+      └───┬────┘
+          │
+  ┌───────┼───────┐
+  ▼       ▼       ▼
+┌────┐ ┌────┐ ┌────┐
+│ASR │ │LLM │ │TTS │
+│讯飞│ │千问│ │火山│
+└────┘ └────┘ └────┘
 ```
 
 ### 技术栈
@@ -226,28 +240,32 @@ chmod +x service.sh && ./service.sh start all
 <tr>
 <td width="50%" valign="top">
 
-**🎨 前端层**
-- Vue.js 2.6 + Element UI
-- Pinia 状态管理
-- opus-recorder 音频编码
-- i18n 国际化
+**🖥️ 客户端层**
+- **Electron 39**: 跨平台桌面框架
+- **Vue 3.5**: 响应式前端框架
+- **TypeScript 5.9**: 类型安全开发
+- **Naive UI**: 现代组件库
+- **Pinia**: 状态管理 + 持久化
+- **VueUse**: 组合式工具集
+- **Web Audio API**: 音频处理
+- **Opus 编码**: 高效音频压缩
 
 **🔧 后端层**
 - **Python Server**: FastAPI + WebSocket
-- **Manager API**: Bun + Elysia + Drizzle ORM
+- **异步处理**: asyncio + aiohttp
 
 </td>
 <td width="50%" valign="top">
-
-**💾 数据层**
-- PostgreSQL 16 (关系型数据库)
-- Redis 7 (缓存)
 
 **🤖 AI 服务层**
 - 讯飞语音 (ASR)
 - 通义千问 (LLM + Vision)
 - 火山引擎 (TTS)
 - Silero VAD (本地检测)
+
+**🛠️ 开发工具**
+- uv (依赖管理)
+- 虚拟环境隔离
 
 </td>
 </tr>
@@ -256,11 +274,11 @@ chmod +x service.sh && ./service.sh start all
 ### 数据流
 
 ```
-麦克风 → AudioWorklet → Opus编码 → WebSocket
+麦克风 → Web Audio API → Opus编码 → WebSocket
   ↓
 Python Server → VAD检测 → ASR识别 → LLM处理
   ↓
-TTS合成 → WebSocket → 前端播放
+TTS合成 → WebSocket → Web Audio 播放
 ```
 
 ---
@@ -270,39 +288,34 @@ TTS合成 → WebSocket → 前端播放
 ```
 python-mcp/
 │
-├── 🚀 service.sh              # 统一服务管理（启动/停止/重启/状态/日志）
 ├── 📖 README.md               # 项目文档
 │
 ├── 📂 server/                 # Python AI 服务
+│   ├── 🚀 run_server.sh       # 服务器启动脚本
 │   ├── app.py                 # 主入口
 │   ├── requirements.txt       # 依赖
-│   ├── config.yaml            # 配置
+│   ├── config.yaml            # 配置模板
 │   └── 📂 core/
 │       ├── websocket_server.py    # WebSocket 服务
 │       ├── http_server.py         # HTTP API
-│       └── providers/             # AI 提供者
-│           ├── asr/               # 语音识别
-│           ├── llm/               # 大模型
-│           ├── tts/               # 语音合成
-│           └── vad/               # 语音检测
+│       ├── 📂 providers/          # AI 提供者
+│       │   ├── asr/               # 语音识别
+│       │   ├── llm/               # 大模型
+│       │   ├── tts/               # 语音合成
+│       │   ├── vad/               # 语音检测
+│       │   └── vllm/              # 视觉理解
+│       ├── 📂 handle/             # 消息处理
+│       └── 📂 utils/              # 工具函数
 │
-├── 📂 manager-api-elysia/     # TypeScript 后端 API
-│   ├── server.ts              # 服务入口
-│   └── 📂 src/
-│       ├── index.ts           # 主路由
-│       ├── 📂 modules/        # 业务模块
-│       └── 📂 db/             # 数据库
-│
-├── 📂 client/                 # Vue.js 前端
-│   └── 📂 src/
-│       ├── App.vue
-│       ├── 📂 views/          # 页面
-│       ├── 📂 components/     # 组件
-│       └── 📂 apis/           # API
-│
-├── 📂 data/                   # 配置数据
-│   ├── config.yaml            # 默认配置
-│   └── .config.yaml           # 自定义配置 (优先)
+├── 📂 client/                 # Electron + Vue 3 客户端
+│   ├── package.json           # 项目配置
+│   ├── electron.vite.config.ts # 构建配置
+│   ├── 📂 src/
+│   │   ├── main/              # Electron 主进程
+│   │   ├── renderer/          # Vue 3 渲染进程
+│   │   ├── preload/           # 预加载脚本
+│   │   └── shared/            # 共享模块
+│   └── 📂 resources/          # 应用资源
 │
 ├── 📂 logs/                   # 日志文件 (自动生成)
 ├── 📂 pids/                   # 进程 ID (自动生成)
@@ -313,60 +326,40 @@ python-mcp/
 
 ## 🔧 服务管理
 
-### 🎮 两种使用方式
+### 📋 独立脚本管理
 
-#### 方式一：交互式菜单（推荐）
+项目现在使用独立的脚本来管理服务器和客户端：
 
-```bash
-# 直接运行，进入交互式菜单
-./service.sh
-```
-
-**交互式菜单功能：**
-- ✅ 图形化界面，无需记忆命令
-- ✅ 数字选择，操作更简单
-- ✅ 实时反馈，状态一目了然
-- ✅ 智能导航，完成后自动返回
-
-```
-╔════════════════════════════════════════╗
-║   AI 语音助手 - 服务管理工具           ║
-╚════════════════════════════════════════╝
-
-请选择操作:
-
-  1) 启动所有服务        5) 启动 PostgreSQL
-  2) 停止所有服务        6) 启动 Redis
-  3) 重启所有服务        7) 启动 Manager API
-  4) 查看服务状态        8) 启动 Python Server
-                        9) 启动前端应用
-
-  10-15) 停止/重启单个服务
-  16-18) 查看各服务日志
-  0) 退出
-
-请输入选项 [0-18]:
-```
-
-#### 方式二：命令行模式
+#### 🖥️ 服务器管理
 
 ```bash
-# 适合脚本化和快速操作
-./service.sh [命令] [服务] [选项]
+cd server
+
+./run_server.sh start    # 启动服务器
+./run_server.sh stop     # 停止服务器
+./run_server.sh restart  # 重启服务器
+./run_server.sh status   # 查看状态
+./run_server.sh logs     # 查看日志
 ```
 
-### 📋 命令总览
+#### 💻 Electron 客户端管理
 
-| 命令 | 说明 | 示例 |
-|------|------|------|
-| `start [service]` | 启动服务 | `./service.sh start all` |
-| `stop [service]` | 停止服务 | `./service.sh stop client` |
-| `restart [service]` | 重启服务 | `./service.sh restart manager-api` |
-| `status` | 查看状态 | `./service.sh status` |
-| `logs [service] [n]` | 查看日志 | `./service.sh logs python-server 100` |
-| `help` | 显示帮助 | `./service.sh help` |
+```bash
+cd client
 
-**支持的服务：** `all` / `postgres` / `redis` / `manager-api` / `python-server` / `client`
+# 开发模式
+npm install              # 首次需安装依赖
+npm run dev             # 启动 Electron 开发模式
+
+# Web 模式
+npm run web             # 浏览器模式（用于调试）
+
+# 生产打包
+npm run build:win       # 打包 Windows 应用
+npm run build:mac       # 打包 macOS 应用
+npm run build:linux     # 打包 Linux 应用
+npm run build:web       # 打包 Web 应用
+```
 
 ### 🎯 常用操作
 
@@ -376,29 +369,23 @@ python-mcp/
 
 **启动服务**
 ```bash
-# 启动所有服务
-./service.sh start all
+# 启动服务器
+cd server
+./run_server.sh start
 
-# 启动单个服务
-./service.sh start postgres
-./service.sh start redis
-./service.sh start manager-api
-./service.sh start python-server
-./service.sh start client
+# 启动客户端（新终端）
+cd client
+npm run dev
 ```
 
 **停止服务**
 ```bash
-# 停止所有应用服务
-./service.sh stop all
+# 停止服务器
+cd server
+./run_server.sh stop
 
-# 停止单个服务
-./service.sh stop client
-./service.sh stop python-server
-
-# 停止数据库
-./service.sh stop postgres
-./service.sh stop redis
+# 停止客户端
+# 关闭 Electron 窗口或按 Ctrl+C
 ```
 
 </td>
@@ -406,26 +393,30 @@ python-mcp/
 
 **重启服务**
 ```bash
-# 重启单个服务
-./service.sh restart manager-api
-./service.sh restart python-server
+# 重启服务器
+cd server
+./run_server.sh restart
 
-# 重启所有应用服务
-./service.sh restart all
+# 重启客户端
+# Electron: 关闭窗口后重新运行 npm run dev
+# Web 模式: 刷新浏览器页面
 ```
 
 **查看状态和日志**
 ```bash
-# 查看所有服务状态
-./service.sh status
-./service.sh  # 简写
+# 查看服务器状态
+cd server
+./run_server.sh status
 
-# 查看日志
-./service.sh logs manager-api       # 最后50行
-./service.sh logs python-server 100 # 最后100行
+# 查看服务器日志
+./run_server.sh logs
 
-# 实时日志
-tail -f logs/python-server.log
+# 实时查看日志
+tail -f ../logs/python-server.log
+
+# 客户端日志
+# Electron: 菜单 → View → Toggle Developer Tools
+# Web: F12 打开浏览器开发者工具
 ```
 
 </td>
@@ -436,55 +427,45 @@ tail -f logs/python-server.log
 
 | 服务 | 端口 | 访问地址 |
 |------|------|---------|
-| 📊 **Manager API** | 30002 | http://localhost:30002 |
-| 🤖 **Python Server** | 30000 | ws://localhost:30000 |
-| 🔌 **Python HTTP** | 30003 | http://localhost:30003 |
-| 🎨 **前端应用** | 30001 | http://localhost:30001 |
-| 🐘 **PostgreSQL** | 5432 | localhost:5432 |
-| 📦 **Redis** | 6379 | localhost:6379 |
+| 🤖 **Python Server WebSocket** | 30000 | ws://localhost:30000/xiaozhi/v1/ |
+| 🔌 **Python HTTP API** | 30003 | http://localhost:30003 |
+| 🖥️ **Electron Client** | - | 桌面应用（无端口）|
+| 🌐 **Web Client (调试)** | 动态 | Vite 开发服务器 |
 
 ### 🛡️ 智能进程管理
 
-service.sh 内置了智能进程管理功能：
+独立脚本内置了智能进程管理功能：
 
 **端口冲突自动处理**
 - ✅ 自动检测端口占用
-- ✅ 智能识别 Snap 包进程（受 AppArmor 保护）
-- ✅ 使用 systemd-run 绕过安全限制
-- ✅ 优雅终止 → 强制终止 → sudo 权限提升
+- ✅ 停止旧进程避免冲突
+- ✅ 优雅终止 → 强制终止机制
 
 **进程保护机制**
 ```bash
 # 脚本会自动处理以下情况：
 - 普通进程：使用 kill/kill -9
-- Snap 包进程：使用 systemd-run kill
-- 权限不足：自动提升 sudo 权限
-- 僵尸进程：强制清理并释放端口
+- PID 文件管理：自动记录和清理
+- 失败重试：启动失败时提供详细日志
 ```
 
 **健康检查**
 - 启动后自动验证服务是否正常运行
-- 端口监听检查
-- HTTP 健康接口检查
+- 端口监听检查（服务器）
+- 进程状态检查（客户端）
 - 失败时输出详细日志供排查
 
 ---
 
 ## ⚙️ 配置
 
-### 配置文件优先级
+### 配置文件位置
 
-系统按以下顺序读取配置：
-
-```
-1. data/.config.yaml    (✅ 推荐：自定义配置)
-2. data/config.yaml     (默认模板)
-3. server/config.yaml   (完整参考)
-```
+服务器配置文件位于 `server/config.yaml`，可以创建 `server/.config.yaml` 自定义配置（优先级更高）。
 
 ### 核心配置项
 
-**最小配置示例** (`data/.config.yaml`):
+**基础配置示例** (`server/config.yaml` 或 `server/.config.yaml`):
 
 ```yaml
 # 服务器配置
@@ -514,6 +495,12 @@ LLM:
     api_key: 'sk-your-api-key'
     model: 'qwen-plus'
 
+# VLLM 配置 (通义千问-VL)
+VLLM:
+  qwen_vl:
+    api_key: 'sk-your-api-key'
+    model: 'qwen-vl-plus'
+
 # TTS 配置 (火山引擎)
 TTS:
   huoshan_stream:
@@ -528,13 +515,13 @@ TTS:
 
 ### WebSocket 接口
 
-**连接地址：** `ws://localhost:30000/ws`
+**连接地址：** `ws://localhost:30000/xiaozhi/v1/`
 
 #### 客户端 → 服务端
 
 ```javascript
 // 音频流（Binary）
-// Opus 编码，16kHz，单声道
+// PCM 或 Opus 编码，16kHz，单声道
 
 // 控制消息（JSON）
 {
@@ -581,12 +568,6 @@ GET http://localhost:30003/health
 
 # Python Server API 文档
 GET http://localhost:30003/docs
-
-# Manager API 文档
-GET http://localhost:30002/doc
-
-# Manager API 健康检查
-GET http://localhost:30002/health
 ```
 
 ---
@@ -600,101 +581,77 @@ GET http://localhost:30002/health
 lsof -i :30000
 
 # 停止服务并重新启动
-./service.sh stop all
-./service.sh start all
-
-# 或者重启特定服务
-./service.sh restart manager-api
+cd server
+./run_server.sh stop
+./run_server.sh start
 ```
 
-### 2. Docker 容器无法启动
-
-```bash
-# 检查 Docker 是否运行
-docker ps
-
-# 停止并重启数据库
-./service.sh stop postgres
-./service.sh stop redis
-./service.sh start postgres
-./service.sh start redis
-
-# 或清理旧容器后重启
-docker rm -f postgres my-redis
-./service.sh start all
-```
-
-### 3. WebSocket 连接失败
+### 2. WebSocket 连接失败
 
 ```bash
 # 确认 Python server 已启动
-./service.sh status
+cd server
+./run_server.sh status
 
 # 查看日志
-./service.sh logs python-server
+./run_server.sh logs
 
 # 重启服务
-./service.sh restart python-server
+./run_server.sh restart
 ```
 
-### 4. 音频无声音
+### 3. 音频无声音
 
 - ✅ 检查浏览器麦克风权限（必须使用 HTTPS 或 localhost）
 - ✅ 确认音频设备在浏览器控制台
 - ✅ 查看 Opus 编码是否正常
 - ✅ 检查 VAD 是否检测到语音
+- ✅ 确认浏览器支持 Web Audio API
 
-### 5. ASR 识别失败
+### 4. ASR 识别失败
 
 - ✅ 验证讯飞 API 配置（app_id、access_key）
 - ✅ 检查音频格式：16kHz，单声道
-- ✅ 查看 `tmp/asr/` 目录下的音频文件
+- ✅ 查看 `server/tmp/asr/` 目录下的音频文件
 - ✅ 确认 API 配额是否充足
 
-### 6. LLM 响应慢或失败
+### 5. LLM 响应慢或失败
 
 - ✅ 检查通义千问 API 配额
 - ✅ 切换到更快的模型（如 qwen-turbo）
 - ✅ 减少 max_tokens 参数
 - ✅ 确认网络连接正常
 
-### 7. 查看实时日志
+### 6. 查看实时日志
 
 ```bash
-# 使用管理脚本查看（推荐）
-./service.sh logs python-server    # 最后 50 行
-./service.sh logs manager-api 100  # 最后 100 行
+# 服务器日志
+cd server
+./run_server.sh logs
 
-# 或使用 tail 实时查看
+# 使用 tail 实时查看
 tail -f logs/python-server.log
-tail -f logs/manager-api.log
-tail -f logs/client.log
+
+# 客户端日志
+# 浏览器中按 F12 打开开发者工具查看控制台
 ```
 
-### 8. 完全重置环境
+### 7. 完全重置环境
 
 ```bash
-# 停止所有服务（包括数据库）
-./service.sh stop all
-./service.sh stop postgres
-./service.sh stop redis
-
-# 删除 Docker 容器和卷
-docker rm -f postgres my-redis
-docker volume rm postgres_data
+# 停止服务器
+cd server && ./run_server.sh stop
 
 # 删除 Python 虚拟环境
-rm -rf server/venv
-
-# 删除 Node 模块
-rm -rf client/node_modules
-rm -rf manager-api-elysia/node_modules
+rm -rf server/.venv
 
 # 清理日志和 PID
-rm -rf logs/* pids/*
+rm -rf logs/* pids/* tmp/*
 
 # 重新启动
-./service.sh start all
+cd server && ./run_server.sh start
+
+# 在浏览器中访问: http://localhost:30001
 ```
 
 ---
@@ -705,7 +662,7 @@ rm -rf logs/* pids/*
 
 1. 在 `server/core/providers/` 对应目录创建新文件
 2. 继承基类并实现接口方法
-3. 在 `config.yaml` 中注册新 provider
+3. 在 `server/config.yaml` 中注册新 provider
 4. 重启 Python Server 生效
 
 ```python
@@ -722,15 +679,38 @@ class MyTTSProvider(TTSProvider):
 
 ```bash
 # 停止服务进行手动调试
-./service.sh stop python-server
-
-# 进入目录手动启动
 cd server
-source venv/bin/activate
+./run_server.sh stop
+
+# 手动启动查看日志
+source .venv/bin/activate
 python app.py  # 可以直接看到日志输出
 
 # 或者查看实时日志
-tail -f logs/python-server.log
+./run_server.sh logs
+```
+
+### 客户端开发
+
+Web 客户端代码位于 `client/` 目录：
+
+```bash
+cd client
+
+# 修改代码后刷新浏览器即可
+# 无需编译和构建步骤
+
+# 主要文件:
+# - index.html: 页面结构
+# - js/main.js: 主逻辑
+# - js/audio.js: 音频处理
+# - js/websocket.js: WebSocket 通信
+# - css/: 样式文件
+
+# 开发时建议:
+# 1. 打开浏览器开发者工具 (F12)
+# 2. 启用网络面板查看 WebSocket 通信
+# 3. 查看控制台输出调试信息
 ```
 
 ---
@@ -765,8 +745,7 @@ tail -f logs/python-server.log
 - [火山引擎](https://www.volcengine.com/)
 - [Silero VAD](https://github.com/snakers4/silero-vad)
 - [FastAPI](https://fastapi.tiangolo.com/)
-- [Vue.js](https://vuejs.org/)
-- [Elysia](https://elysiajs.com/)
+- [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 
 ---
 

@@ -1,0 +1,94 @@
+# 开发环境配置文件 - 仅覆盖需要修改的配置
+# 系统优先读取此文件，未配置的项会自动使用 server/config.yaml 的默认值
+
+# 服务器配置
+server:
+  ip: 0.0.0.0
+  port: 30000
+  http_port: 30003
+
+# 具体处理时选择的模块
+selected_module:
+  VAD: SileroVAD
+  ASR: XunfeiStreamASR
+  LLM: AliLLM
+  VLLM: AliVLLM
+  TTS: HuoshanStreamTTS
+  Memory: mem_local_short
+  Intent: function_call
+
+# VAD 配置 - Silero语音活动检测
+VAD:
+  SileroVAD:
+    type: silero
+    threshold: 0.5
+    threshold_low: 0.3
+    model_dir: models/snakers4_silero-vad
+    min_silence_duration_ms: 200
+
+# ASR 配置 - 讯飞实时语音转写大模型
+ASR:
+  XunfeiStreamASR:
+    type: xunfei_stream
+    app_id: 0b40aea9
+    access_key_id: f527bcba1a7fe10d2ed5ee00c5a356ac
+    access_key_secret: YjRkZDhhMDAxYzAzYjA0OWU3ZmUxNDYx
+    api_url: wss://office-api-ast-dx.iflyaisol.com/ast/communicate/v1
+    lang: autodialect
+    audio_encode: pcm_s16le
+    samplerate: 16000
+    role_type: 0
+    pd: ''
+    output_dir: tmp/asr
+
+# LLM 配置 - 阿里百炼 qwen-plus
+LLM:
+  AliLLM:
+    type: openai
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model_name: qwen-plus
+    api_key: sk-e33de26ce63d4cf7aae73358d1a8af51
+    temperature: 0.7
+    max_tokens: 2000
+    top_p: 0.8
+    stream: true
+
+# VLLM 配置 - 阿里百炼视觉大模型
+VLLM:
+  AliVLLM:
+    type: openai
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model_name: qwen-vl-max
+    api_key: sk-e33de26ce63d4cf7aae73358d1a8af51
+    temperature: 0.7
+    max_tokens: 1500
+
+# TTS 配置 - 火山引擎大模型语音合成（双向流式）
+TTS:
+  HuoshanStreamTTS:
+    type: huoshan_double_stream
+    ws_url: wss://openspeech.bytedance.com/api/v3/tts/bidirection
+    appid: 6255418053
+    access_token: 0fL5wK2g8SqWWjWw6A43PadF_nzJPrqn
+    resource_id: hd1Qq70WF4yGSFMSfEMwFdlq0U1OAn8l
+    speaker: zh_female_qingxin
+    speech_rate: 0
+    loudness_rate: 0
+    pitch: 0
+    enable_ws_reuse: true
+
+# Memory 配置
+Memory:
+  mem_local_short:
+    type: mem_local_short
+    llm: AliLLM
+
+# Intent 配置
+Intent:
+  function_call:
+    type: function_call
+    functions:
+      - change_role
+      - get_weather
+      - get_news_from_newsnow
+      - play_music
