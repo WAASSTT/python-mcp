@@ -40,6 +40,33 @@ export const securityRoutes = new Elysia({ prefix: '/user' })
   )
 
   /**
+   * 获取公共配置（无需认证）
+   */
+  .get(
+    '/pub-config',
+    async () => {
+      // 返回系统的公共配置信息
+      return {
+        code: 0,
+        data: {
+          systemName: '智能体管理系统',
+          version: '1.0.0',
+          enableRegister: true,
+          enableSmsLogin: true,
+          enableCaptcha: true,
+        },
+      };
+    },
+    {
+      detail: {
+        tags: ['登录管理'],
+        summary: '获取公共配置',
+        description: '获取系统公共配置，无需登录即可访问',
+      },
+    }
+  )
+
+  /**
    * 用户登录
    */
   .post(
@@ -371,32 +398,6 @@ export const securityRoutes = new Elysia({ prefix: '/user' })
       detail: {
         tags: ['登录管理'],
         summary: '找回密码',
-      },
-    }
-  )
-
-  /**
-   * 获取公共配置
-   */
-  .get(
-    '/pub-config',
-    async () => {
-      // 返回系统的公共配置信息
-      return {
-        code: 0,
-        data: {
-          systemName: '智能体管理系统',
-          version: '1.0.0',
-          enableRegister: true,
-          enableSmsLogin: true,
-          enableCaptcha: true,
-        },
-      };
-    },
-    {
-      detail: {
-        tags: ['登录管理'],
-        summary: '获取公共配置',
       },
     }
   );
