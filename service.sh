@@ -226,42 +226,16 @@ start_manager_api() {
 
     cd "${PROJECT_ROOT}/manager-api-elysia"
 
-    # 先彻底清理所有 bun 进程（防止多个实例）
-    print_info "清理所有旧的 bun 进程..."
-    local bun_pids=$(pgrep -f "bun" 2>/dev/null)
-    if [ -n "$bun_pids" ]; then
-        print_warning "发现 $(echo "$bun_pids" | wc -w) 个 bun 进程，正在清理..."
-        if ! pkill -9 bun 2>/dev/null; then
-            print_warning "需要 sudo 权限清理 bun 进程"
-            sudo pkill -9 bun 2>/dev/null || true
-        fi
-        sleep 2
-    fi
-
-    # 清理 PID 文件中记录的进程
-    if [ -f "${PID_DIR}/manager-api.pid" ]; then
-        local old_pid=$(cat "${PID_DIR}/manager-api.pid")
-        if ps -p "$old_pid" > /dev/null 2>&1; then
-            kill -9 "$old_pid" 2>/dev/null || true
-        fi
-        rm -f "${PID_DIR}/manager-api.pid"
-    fi
-
-    # 再次确认端口释放
+    # 检查端口是否被占用，如果被占用则需要先清理
     if check_port "$MANAGER_API_PORT"; then
-        print_warning "Manager API 端口 $MANAGER_API_PORT 仍被占用"
+        print_warning "Manager API 端口 $MANAGER_API_PORT 被占用，正在清理..."
 
-        # 显示详细占用信息
-        print_info "端口占用详情:"
-        lsof -i:"$MANAGER_API_PORT" 2>/dev/null || true
-
-        # 强制释放端口
+        # 尝试强制释放端口
         if ! force_free_port "$MANAGER_API_PORT"; then
             print_error "无法启动 Manager API：端口被占用且无法释放"
-            print_error "请手动执行: pkill -9 bun 或 lsof -ti:$MANAGER_API_PORT | xargs kill -9"
+            print_info "请先运行: ./service.sh stop manager-api"
             return 1
         fi
-        bun install
     fi
 
     # 数据库迁移
@@ -350,11 +324,7 @@ start_client() {
     # 安装依赖
     if [ ! -d "node_modules" ]; then
         print_info "安装前端依赖..."
-        if check_command pnpm; then
-            pnpm install
-        else
-            npm install
-        fi
+        npm install
     fi
 
     # 更新配置
@@ -363,11 +333,7 @@ start_client() {
     fi
 
     # 启动服务
-    if check_command pnpm; then
-        nohup pnpm serve > "${LOG_DIR}/client.log" 2>&1 &
-    else
-        nohup npm run serve > "${LOG_DIR}/client.log" 2>&1 &
-    fi
+    nohup npm run serve > "${LOG_DIR}/client.log" 2>&1 &
     local pid=$!
     echo "$pid" > "${PID_DIR}/client.pid"
 
