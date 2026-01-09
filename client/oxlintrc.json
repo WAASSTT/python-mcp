@@ -1,10 +1,10 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "typescript", "unicorn", "promise"],
   "rules": {
     "typescript": "warn",
     "import": "warn",
     "promise": "warn",
-    "react": "off",
     "unicorn": "warn",
     "oxc": "warn"
   },

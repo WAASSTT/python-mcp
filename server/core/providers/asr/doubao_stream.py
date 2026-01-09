@@ -33,7 +33,17 @@ class ASRProvider(ASRProviderBase):
         self.delete_audio_file = delete_audio_file
 
         # 火山引擎ASR配置
-        self.ws_url = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel"
+        # 模式选择：bigmodel (标准双向流式) / bigmodel_async (优化版，推荐) / bigmodel_nostream (流式输入)
+        self.stream_mode = config.get("stream_mode", "bigmodel_async")
+
+        # 根据模式选择接口地址
+        mode_urls = {
+            "bigmodel": "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel",
+            "bigmodel_async": "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async",
+            "bigmodel_nostream": "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_nostream"
+        }
+        self.ws_url = mode_urls.get(self.stream_mode, mode_urls["bigmodel_async"])
+
         self.uid = config.get("uid", "streaming_asr_service")
         self.workflow = config.get(
             "workflow", "audio_in,resample,partition,vad,fe,decode,itn,nlu_punctuate"
@@ -47,6 +57,10 @@ class ASRProvider(ASRProviderBase):
         self.channel = config.get("channel", 1)
         self.auth_method = config.get("auth_method", "token")
         self.secret = config.get("secret", "access_secret")
+        # Resource ID配置：
+        # 豆包流式语音识别模型1.0: volc.bigasr.sauc.duration (小时版) / volc.bigasr.sauc.concurrent (并发版)
+        # 豆包流式语音识别模型2.0: volc.seedasr.sauc.duration (小时版) / volc.seedasr.sauc.concurrent (并发版)
+        self.resource_id = config.get("resource_id", "volc.bigasr.sauc.duration")
         end_window_size = config.get("end_window_size")
         self.end_window_size = int(end_window_size) if end_window_size else 200
 
@@ -72,7 +86,9 @@ class ASRProvider(ASRProviderBase):
                 self.is_processing = True
                 # 建立新的WebSocket连接
                 headers = self.token_auth() if self.auth_method == "token" else None
-                logger.bind(tag=TAG).info(f"正在连接ASR服务，headers: {headers}")
+                logger.bind(tag=TAG).info(f"正在连接ASR服务 [{self.stream_mode}]")
+                logger.bind(tag=TAG).info(f"接口地址: {self.ws_url}")
+                logger.bind(tag=TAG).debug(f"认证headers: {headers}")
 
                 self.asr_ws = await websockets.connect(
                     self.ws_url,
@@ -133,7 +149,26 @@ class ASRProvider(ASRProviderBase):
                             )
 
             except Exception as e:
-                logger.bind(tag=TAG).error(f"建立ASR连接失败: {str(e)}")
+                error_msg = str(e)
+                logger.bind(tag=TAG).error(f"建立ASR连接失败: {error_msg}")
+
+                # 针对HTTP 403错误提供详细的诊断信息
+                if "403" in error_msg or "rejected" in error_msg:
+                    logger.bind(tag=TAG).error("=" * 60)
+                    logger.bind(tag=TAG).error("HTTP 403 错误诊断：")
+                    logger.bind(tag=TAG).error(f"1. 检查 App Key: {self.appid}")
+                    logger.bind(tag=TAG).error(f"2. 检查 Access Token: {self.access_token[:10]}...")
+                    logger.bind(tag=TAG).error(f"3. 检查 Resource ID: {self.resource_id}")
+                    logger.bind(tag=TAG).error("4. 确认火山引擎控制台已开通语音识别服务")
+                    logger.bind(tag=TAG).error("5. 确认Access Token未过期")
+                    logger.bind(tag=TAG).error("6. 检查是否选择了正确的计费模式（小时版/并发版）")
+                    logger.bind(tag=TAG).error("可用的Resource ID:")
+                    logger.bind(tag=TAG).error("  - volc.bigasr.sauc.duration (1.0小时版)")
+                    logger.bind(tag=TAG).error("  - volc.bigasr.sauc.concurrent (1.0并发版)")
+                    logger.bind(tag=TAG).error("  - volc.seedasr.sauc.duration (2.0小时版,推荐)")
+                    logger.bind(tag=TAG).error("  - volc.seedasr.sauc.concurrent (2.0并发版)")
+                    logger.bind(tag=TAG).error("=" * 60)
+
                 if hasattr(e, "__cause__") and e.__cause__:
                     logger.bind(tag=TAG).error(f"错误原因: {str(e.__cause__)}")
                 if self.asr_ws:
@@ -314,7 +349,7 @@ class ASRProvider(ASRProviderBase):
         return {
             "X-Api-App-Key": self.appid,
             "X-Api-Access-Key": self.access_token,
-            "X-Api-Resource-Id": "volc.bigasr.sauc.duration",
+            "X-Api-Resource-Id": self.resource_id,
             "X-Api-Connect-Id": str(uuid.uuid4()),
         }
 
@@ -362,35 +397,86 @@ class ASRProvider(ASRProviderBase):
                 logger.bind(tag=TAG).error(f"响应数据长度不足: {len(res)}")
                 return {"error": "响应数据长度不足"}
 
-            # 获取消息头
+            # 解析Header (4字节)
             header = res[:4]
-            message_type = header[1] >> 4
+            protocol_version = (header[0] >> 4) & 0x0F
+            header_size = (header[0] & 0x0F) * 4
+            message_type = (header[1] >> 4) & 0x0F
+            message_type_specific_flags = header[1] & 0x0F
+            serial_method = (header[2] >> 4) & 0x0F
+            compression_type = header[2] & 0x0F
 
-            # 如果是错误响应
+            logger.bind(tag=TAG).debug(f"协议头: version={protocol_version}, header_size={header_size}, "
+                                       f"message_type={message_type:#x}, flags={message_type_specific_flags:#x}, "
+                                       f"serial={serial_method}, compression={compression_type}")
+
+            # 如果是错误响应 (message_type = 0x0F)
             if message_type == 0x0F:  # SERVER_ERROR_RESPONSE
-                code = int.from_bytes(res[4:8], "big", signed=False)
-                msg_length = int.from_bytes(res[8:12], "big", signed=False)
-                error_msg = json.loads(res[12:].decode("utf-8"))
+                code = int.from_bytes(res[header_size:header_size+4], "big", signed=False)
+                msg_length = int.from_bytes(res[header_size+4:header_size+8], "big", signed=False)
+                error_msg = json.loads(res[header_size+8:header_size+8+msg_length].decode("utf-8"))
                 return {
                     "code": code,
                     "msg_length": msg_length,
                     "payload_msg": error_msg,
                 }
 
-            # 获取JSON数据（跳过12字节头部）
-            try:
-                json_data = res[12:].decode("utf-8")
-                result = json.loads(json_data)
-                logger.bind(tag=TAG).debug(f"成功解析JSON响应: {result}")
-                return {"payload_msg": result}
-            except (UnicodeDecodeError, json.JSONDecodeError) as e:
-                logger.bind(tag=TAG).error(f"JSON解析失败: {str(e)}")
-                logger.bind(tag=TAG).error(f"原始数据: {res}")
-                raise
+            # Full server response (message_type = 0x09)
+            offset = header_size
+
+            # 检查是否有sequence number (通过message_type_specific_flags判断)
+            if message_type_specific_flags & 0x01:  # 有sequence number
+                if len(res) < offset + 4:
+                    logger.bind(tag=TAG).error(f"数据长度不足以读取sequence: {len(res)}")
+                    return {"error": "数据长度不足"}
+                sequence = int.from_bytes(res[offset:offset+4], "big", signed=False)
+                offset += 4
+                logger.bind(tag=TAG).debug(f"Sequence number: {sequence}")
+
+            # 读取payload size (4字节)
+            if len(res) < offset + 4:
+                logger.bind(tag=TAG).error(f"数据长度不足以读取payload size: {len(res)}")
+                return {"error": "数据长度不足"}
+
+            payload_size = int.from_bytes(res[offset:offset+4], "big", signed=False)
+            offset += 4
+
+            logger.bind(tag=TAG).debug(f"Payload size: {payload_size}, 剩余数据长度: {len(res) - offset}")
+
+            # 读取payload
+            if len(res) < offset + payload_size:
+                logger.bind(tag=TAG).error(f"payload数据不完整: 期望{payload_size}字节, 实际{len(res) - offset}字节")
+                return {"error": "payload数据不完整"}
+
+            payload_bytes = res[offset:offset+payload_size]
+
+            # 根据压缩类型解压
+            if compression_type == 0x01:  # Gzip压缩
+                try:
+                    payload_bytes = gzip.decompress(payload_bytes)
+                    logger.bind(tag=TAG).debug(f"Gzip解压后长度: {len(payload_bytes)}")
+                except Exception as e:
+                    logger.bind(tag=TAG).error(f"Gzip解压失败: {str(e)}")
+                    return {"error": f"Gzip解压失败: {str(e)}"}
+
+            # 根据序列化方法解析
+            if serial_method == 0x01:  # JSON
+                try:
+                    json_str = payload_bytes.decode("utf-8")
+                    result = json.loads(json_str)
+                    logger.bind(tag=TAG).debug(f"成功解析JSON响应: {result}")
+                    return {"payload_msg": result}
+                except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                    logger.bind(tag=TAG).error(f"JSON解析失败: {str(e)}")
+                    logger.bind(tag=TAG).error(f"原始payload: {payload_bytes[:200]}")
+                    raise
+            else:
+                logger.bind(tag=TAG).error(f"不支持的序列化方法: {serial_method}")
+                return {"error": f"不支持的序列化方法: {serial_method}"}
 
         except Exception as e:
             logger.bind(tag=TAG).error(f"解析响应失败: {str(e)}")
-            logger.bind(tag=TAG).error(f"原始响应数据: {res.hex()}")
+            logger.bind(tag=TAG).error(f"原始响应数据(hex): {res[:100].hex()}")
             raise
 
     async def speech_to_text(self, opus_data, session_id, audio_format):
@@ -411,7 +497,7 @@ class ASRProvider(ASRProviderBase):
                 pass
             self.forward_task = None
         self.is_processing = False
-        
+
         # 显式释放decoder资源
         if hasattr(self, 'decoder') and self.decoder is not None:
             try:

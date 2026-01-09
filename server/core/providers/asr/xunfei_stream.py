@@ -57,15 +57,19 @@ class ASRProvider(ASRProviderBase):
 
     def create_url(self) -> str:
         """生成认证URL"""
-        url = "ws://iat.cn-huabei-1.xf-yun.com/v1"
+        # 使用官方推荐的新版v2接口地址
+        url = "wss://iat-api.xfyun.cn/v2/iat"
+        host = "iat-api.xfyun.cn"
+        path = "/v2/iat"
+
         # 生成RFC1123格式的时间戳
         now = datetime.now()
         date = format_date_time(mktime(now.timetuple()))
 
         # 拼接字符串
-        signature_origin = "host: " + "iat.cn-huabei-1.xf-yun.com" + "\n"
+        signature_origin = "host: " + host + "\n"
         signature_origin += "date: " + date + "\n"
-        signature_origin += "GET " + "/v1 " + "HTTP/1.1"
+        signature_origin += "GET " + path + " HTTP/1.1"
 
         # 进行hmac-sha256进行加密
         signature_sha = hmac.new(
@@ -87,7 +91,7 @@ class ASRProvider(ASRProviderBase):
         v = {
             "authorization": authorization,
             "date": date,
-            "host": "iat.cn-huabei-1.xf-yun.com",
+            "host": host,
         }
 
         # 拼接鉴权参数，生成url

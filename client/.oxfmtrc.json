@@ -5,7 +5,12 @@
   "trailingComma": "none",
   "experimentalSortImports": {
     "internalPattern": ["@/**", "~/**"],
-    "groups": [["builtin", "external"], ["internal"], ["parent", "sibling", "index"], ["type"]]
+    "groups": [
+      ["builtin", "external"],
+      ["internal"],
+      ["parent", "sibling", "index"],
+      ["type"]
+    ]
   },
   "ignorePatterns": [
     "node_modules",
@@ -19,7 +24,8 @@
     "*.min.css",
     "*-lock.yaml",
     "*-lock.json",
-    "src/renderer/auto-imports.d.ts",
-    "src/renderer/components.d.ts"
+    "*.d.ts",
+    "auto-imports.d.ts",
+    "components.d.ts"
   ]
 }

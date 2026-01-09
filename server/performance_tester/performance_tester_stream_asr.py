@@ -138,18 +138,27 @@ class DoubaoStreamASRTester(BaseASRTester):
         latencies = []
         for i in range(test_count):
             try:
-                ws_url = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel"
+                # 支持配置的流式模式
+                stream_mode = self.asr_config.get("stream_mode", "bigmodel_async")
+                mode_urls = {
+                    "bigmodel": "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel",
+                    "bigmodel_async": "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async",
+                    "bigmodel_nostream": "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_nostream"
+                }
+                ws_url = mode_urls.get(stream_mode, mode_urls["bigmodel_async"])
+
                 appid = self.asr_config["appid"]
                 access_token = self.asr_config["access_token"]
                 cluster = self.asr_config.get("cluster", "volcengine_input_common")
                 uid = self.asr_config.get("uid", "streaming_asr_service")
+                resource_id = self.asr_config.get("resource_id", "volc.bigasr.sauc.duration")
 
                 start_time = time.time()
 
                 headers = {
-                    "X-Api-App-Key": appid,
+                    "X-Api-App-Key": str(appid),
                     "X-Api-Access-Key": access_token,
-                    "X-Api-Resource-Id": "volc.bigasr.sauc.duration",
+                    "X-Api-Resource-Id": resource_id,
                     "X-Api-Connect-Id": str(uuid.uuid4())
                 }
 

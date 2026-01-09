@@ -44,7 +44,7 @@ tmp/
 *.tmp
 
 # 配置文件（保护敏感信息）
-server/data/.config.yaml
+server/data/
 .env
 .env.local
 

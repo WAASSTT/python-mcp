@@ -74,7 +74,8 @@ class ConnectionHandler:
         self.last_bind_prompt_time = 0  # 上次播放绑定提示的时间戳(秒)
         self.bind_prompt_interval = 60  # 绑定提示播放间隔(秒)
 
-        self.read_config_from_api = self.config.get("read_config_from_api", False)
+        self.read_config_from_api = self.config.get(
+            "read_config_from_api", False)
 
         self.websocket = None
         self.headers = None
@@ -130,6 +131,8 @@ class ConnectionHandler:
         # 所以涉及到ASR的变量，需要在这里定义，属于connection的私有变量
         self.asr_audio = []
         self.asr_audio_queue = queue.Queue()
+        self.current_speaker = None  # 存储当前说话人
+        self.current_language_tag = None  # 存储当前ASR识别的语言标签
 
         # llm相关变量
         self.llm_finish_task = True
@@ -190,7 +193,8 @@ class ConnectionHandler:
 
             # 检查是否来自MQTT连接
             request_path = ws.request.path
-            self.conn_from_mqtt_gateway = request_path.endswith("?from=mqtt_gateway")
+            self.conn_from_mqtt_gateway = request_path.endswith(
+                "?from=mqtt_gateway")
             if self.conn_from_mqtt_gateway:
                 self.logger.bind(tag=TAG).info("连接来自:MQTT网关")
 
@@ -218,7 +222,8 @@ class ConnectionHandler:
             return
         except Exception as e:
             stack_trace = traceback.format_exc()
-            self.logger.bind(tag=TAG).error(f"Connection error: {str(e)}-{stack_trace}")
+            self.logger.bind(tag=TAG).error(
+                f"Connection error: {str(e)}-{stack_trace}")
             return
         finally:
             try:
@@ -303,7 +308,10 @@ class ConnectionHandler:
         if isinstance(message, str):
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
+            self.logger.bind(tag=TAG).info(f"📦 收到音频数据: {len(message)} bytes")
+
             if self.vad is None or self.asr is None:
+                self.logger.bind(tag=TAG).warning(f"⚠️ VAD/ASR 未初始化，丢弃音频")
                 return
 
             # 处理来自MQTT网关的音频包
@@ -314,6 +322,7 @@ class ConnectionHandler:
 
             # 不需要头部处理或没有头部时，直接处理原始消息
             self.asr_audio_queue.put(message)
+            self.logger.bind(tag=TAG).info(f"✅ 音频已加入队列")
 
     async def _process_mqtt_audio_message(self, message):
         """
@@ -333,7 +342,7 @@ class ConnectionHandler:
             # 提取音频数据
             if audio_length > 0 and len(message) >= 16 + audio_length:
                 # 有指定长度，提取精确的音频数据
-                audio_data = message[16 : 16 + audio_length]
+                audio_data = message[16: 16 + audio_length]
                 # 基于时间戳进行排序处理
                 self._process_websocket_audio(audio_data, timestamp)
                 return True
@@ -569,7 +578,8 @@ class ConnectionHandler:
                 self.headers.get("device-id"),
                 self.headers.get("client-id", self.headers.get("device-id")),
             )
-            private_config["delete_audio"] = bool(self.config.get("delete_audio", True))
+            private_config["delete_audio"] = bool(
+                self.config.get("delete_audio", True))
             self.logger.bind(tag=TAG).info(
                 f"{time.time() - begin_time} 秒，异步获取差异化配置成功: {json.dumps(filter_sensitive_info(private_config), ensure_ascii=False)}"
             )
@@ -633,7 +643,8 @@ class ConnectionHandler:
         if private_config.get("Intent", None) is not None:
             init_intent = True
             self.config["Intent"] = private_config["Intent"]
-            model_intent = private_config.get("selected_module", {}).get("Intent", {})
+            model_intent = private_config.get(
+                "selected_module", {}).get("Intent", {})
             self.config["selected_module"]["Intent"] = model_intent
             # 加载插件配置
             if model_intent != "Intent_nointent":
@@ -652,7 +663,8 @@ class ConnectionHandler:
         if private_config.get("summaryMemory", None) is not None:
             self.config["summaryMemory"] = private_config["summaryMemory"]
         if private_config.get("device_max_output_size", None) is not None:
-            self.max_output_size = int(private_config["device_max_output_size"])
+            self.max_output_size = int(
+                private_config["device_max_output_size"])
         if private_config.get("chat_history_conf", None) is not None:
             self.chat_history_conf = int(private_config["chat_history_conf"])
         if private_config.get("mcp_endpoint", None) is not None:
@@ -719,7 +731,8 @@ class ConnectionHandler:
                 from core.utils import llm as llm_utils
 
                 memory_llm_config = self.config["LLM"][memory_llm_name]
-                memory_llm_type = memory_llm_config.get("type", memory_llm_name)
+                memory_llm_type = memory_llm_config.get(
+                    "type", memory_llm_name)
                 memory_llm = llm_utils.create_instance(
                     memory_llm_type, memory_llm_config
                 )
@@ -761,7 +774,8 @@ class ConnectionHandler:
                 from core.utils import llm as llm_utils
 
                 intent_llm_config = self.config["LLM"][intent_llm_name]
-                intent_llm_type = intent_llm_config.get("type", intent_llm_name)
+                intent_llm_type = intent_llm_config.get(
+                    "type", intent_llm_name)
                 intent_llm = llm_utils.create_instance(
                     intent_llm_type, intent_llm_config
                 )
@@ -779,7 +793,8 @@ class ConnectionHandler:
 
         # 异步初始化工具处理器
         if hasattr(self, "loop") and self.loop:
-            asyncio.run_coroutine_threadsafe(self.func_handler._initialize(), self.loop)
+            asyncio.run_coroutine_threadsafe(
+                self.func_handler._initialize(), self.loop)
 
     def change_system_prompt(self, prompt):
         self.prompt = prompt
@@ -942,7 +957,8 @@ class ConnectionHandler:
                 if len(response_message) > 0:
                     text_buff = "".join(response_message)
                     self.tts_MessageText = text_buff
-                    self.dialogue.put(Message(role="assistant", content=text_buff))
+                    self.dialogue.put(
+                        Message(role="assistant", content=text_buff))
                 response_message.clear()
 
                 self.logger.bind(tag=TAG).debug(
@@ -1007,7 +1023,8 @@ class ConnectionHandler:
                 Action.ERROR,
             ]:  # 直接回复前端
                 text = result.response if result.response else result.result
-                self.tts.tts_one_sentence(self, ContentType.TEXT, content_detail=text)
+                self.tts.tts_one_sentence(
+                    self, ContentType.TEXT, content_detail=text)
                 self.dialogue.put(Message(role="assistant", content=text))
             elif result.action == Action.REQLLM:
                 # 收集需要 LLM 处理的工具
@@ -1032,7 +1049,8 @@ class ConnectionHandler:
                 }
                 for idx, (_, tool_call_data) in enumerate(need_llm_tools)
             ]
-            self.dialogue.put(Message(role="assistant", tool_calls=all_tool_calls))
+            self.dialogue.put(
+                Message(role="assistant", tool_calls=all_tool_calls))
 
             for result, tool_call_data in need_llm_tools:
                 text = result.result
@@ -1155,7 +1173,8 @@ class ConnectionHandler:
                         # 如果关闭失败，忽略错误
                         pass
             except Exception as ws_error:
-                self.logger.bind(tag=TAG).error(f"关闭WebSocket连接时出错: {ws_error}")
+                self.logger.bind(tag=TAG).error(
+                    f"关闭WebSocket连接时出错: {ws_error}")
 
             if self.tts:
                 await self.tts.close()
@@ -1269,7 +1288,8 @@ class ConnectionHandler:
                     # 有 function_name，说明是新的工具调用
                     tool_index = len(tool_calls_list)
                 else:
-                    tool_index = len(tool_calls_list) - 1 if tool_calls_list else 0
+                    tool_index = len(tool_calls_list) - \
+                        1 if tool_calls_list else 0
 
             # 确保列表有足够的位置
             if tool_index >= len(tool_calls_list):

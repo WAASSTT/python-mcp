@@ -93,10 +93,12 @@ class ASRProviderBase(ABC):
                 wav_data = self._pcm_to_wav(combined_pcm_data)
 
             # 定义ASR任务
-            asr_task = self.speech_to_text(asr_audio_task, conn.session_id, conn.audio_format)
+            asr_task = self.speech_to_text(
+                asr_audio_task, conn.session_id, conn.audio_format)
 
             if conn.voiceprint_provider and wav_data:
-                voiceprint_task = conn.voiceprint_provider.identify_speaker(wav_data, conn.session_id)
+                voiceprint_task = conn.voiceprint_provider.identify_speaker(
+                    wav_data, conn.session_id)
                 # 并发等待两个结果
                 asr_result, voiceprint_result = await asyncio.gather(
                     asr_task, voiceprint_task, return_exceptions=True
@@ -118,34 +120,58 @@ class ASRProviderBase(ABC):
             else:
                 speaker_name = voiceprint_result
 
-            if raw_text:
-                logger.bind(tag=TAG).info(f"识别文本: {raw_text}")
-            if speaker_name:
-                logger.bind(tag=TAG).info(f"识别说话人: {speaker_name}")
+            # 判断 ASR 结果类型
+            if isinstance(raw_text, dict):
+                # FunASR 返回的 dict 格式
+                if speaker_name:
+                    raw_text["speaker"] = speaker_name
+
+                # 记录识别结果
+                if raw_text.get("language"):
+                    logger.bind(tag=TAG).info(f"识别语言: {raw_text['language']}")
+                if raw_text.get("emotion"):
+                    logger.bind(tag=TAG).info(f"识别情绪: {raw_text['emotion']}")
+                if raw_text.get("content"):
+                    logger.bind(tag=TAG).info(f"识别文本: {raw_text['content']}")
+                if speaker_name:
+                    logger.bind(tag=TAG).info(f"识别说话人: {speaker_name}")
+
+                # 转换为 JSON 字符串用于下游
+                enhanced_text = json.dumps(raw_text, ensure_ascii=False)
+                content_for_length_check = raw_text.get("content", "")
+            else:
+                # 其他 ASR 返回的纯文本
+                if raw_text:
+                    logger.bind(tag=TAG).info(f"识别文本: {raw_text}")
+                if speaker_name:
+                    logger.bind(tag=TAG).info(f"识别说话人: {speaker_name}")
+
+                # 构建包含说话人信息的JSON字符串
+                enhanced_text = self._build_enhanced_text(
+                    raw_text, speaker_name)
+                content_for_length_check = raw_text
 
             # 性能监控
             total_time = time.monotonic() - total_start_time
             logger.bind(tag=TAG).debug(f"总处理耗时: {total_time:.3f}s")
 
             # 检查文本长度
-            text_len, _ = remove_punctuation_and_length(raw_text)
+            text_len, _ = remove_punctuation_and_length(
+                content_for_length_check)
             self.stop_ws_connection()
 
             if text_len > 0:
-                # 构建包含说话人信息的JSON字符串
-                enhanced_text = self._build_enhanced_text(raw_text, speaker_name)
-
                 # 使用自定义模块进行上报
                 await startToChat(conn, enhanced_text)
                 enqueue_asr_report(conn, enhanced_text, asr_audio_task)
-                
+
         except Exception as e:
             logger.bind(tag=TAG).error(f"处理语音停止失败: {e}")
             import traceback
             logger.bind(tag=TAG).debug(f"异常详情: {traceback.format_exc()}")
 
     def _build_enhanced_text(self, text: str, speaker_name: Optional[str]) -> str:
-        """构建包含说话人信息的文本"""
+        """构建包含说话人信息的文本（仅用于纯文本ASR）"""
         if speaker_name and speaker_name.strip():
             return json.dumps({
                 "speaker": speaker_name,
@@ -159,11 +185,11 @@ class ASRProviderBase(ABC):
         if len(pcm_data) == 0:
             logger.bind(tag=TAG).warning("PCM数据为空，无法转换WAV")
             return b""
-        
+
         # 确保数据长度是偶数（16位音频）
         if len(pcm_data) % 2 != 0:
             pcm_data = pcm_data[:-1]
-        
+
         # 创建WAV文件头
         wav_buffer = io.BytesIO()
         try:
@@ -172,10 +198,10 @@ class ASRProviderBase(ABC):
                 wav_file.setsampwidth(2)      # 16位
                 wav_file.setframerate(16000)  # 16kHz采样率
                 wav_file.writeframes(pcm_data)
-            
+
             wav_buffer.seek(0)
             wav_data = wav_buffer.read()
-            
+
             return wav_data
         except Exception as e:
             logger.bind(tag=TAG).error(f"WAV转换失败: {e}")
@@ -213,23 +239,23 @@ class ASRProviderBase(ABC):
             decoder = opuslib_next.Decoder(16000, 1)
             pcm_data = []
             buffer_size = 960  # 每次处理960个采样点 (60ms at 16kHz)
-            
+
             for i, opus_packet in enumerate(opus_data):
                 try:
                     if not opus_packet or len(opus_packet) == 0:
                         continue
-                    
+
                     pcm_frame = decoder.decode(opus_packet, buffer_size)
                     if pcm_frame and len(pcm_frame) > 0:
                         pcm_data.append(pcm_frame)
-                        
+
                 except opuslib_next.OpusError as e:
                     logger.bind(tag=TAG).warning(f"Opus解码错误，跳过数据包 {i}: {e}")
                 except Exception as e:
                     logger.bind(tag=TAG).error(f"音频处理错误，数据包 {i}: {e}")
-            
+
             return pcm_data
-            
+
         except Exception as e:
             logger.bind(tag=TAG).error(f"音频解码过程发生错误: {e}")
             return []
