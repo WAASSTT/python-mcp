@@ -3,30 +3,34 @@
     <!-- 左侧主表情区域 -->
     <div class="left-section">
       <div class="emoji-display" @click="handleEmojiClick">
-        <div class="emoji-circle" :class="{ active: appStore.isSessionActive, speaking: appStore.isSpeaking }">
+        <div class="emoji-circle" :class="{ active: appStore.isConnected, speaking: appStore.isRecording }">
           <span class="emoji-icon">{{ currentEmoji }}</span>
         </div>
         <div class="status-text">{{ statusText }}</div>
-        <div v-if="appStore.isConnected" class="connection-indicator">
-          <span class="dot connected"></span>
+        <n-tag v-if="appStore.isConnected" type="success" size="small" :bordered="false" round>
+          <template #icon>
+            <span style="font-size: 8px;">●</span>
+          </template>
           已连接
-        </div>
-        <div v-else-if="appStore.reconnecting" class="connection-indicator">
-          <span class="dot connecting"></span>
-          重连中 ({{ appStore.reconnectAttempts }}/5)
-        </div>
-        <div v-else class="connection-indicator">
-          <span class="dot connecting"></span>
+        </n-tag>
+        <n-tag v-else type="default" size="small" :bordered="false" round>
+          <template #icon>
+            <span style="font-size: 8px;">●</span>
+          </template>
           {{ connecting ? '连接中...' : '未连接' }}
-        </div>
+        </n-tag>
 
         <!-- 音量指示器 -->
-        <div v-if="appStore.isSpeaking && appStore.currentVolume > 0" class="volume-indicator">
+        <div v-if="appStore.isSpeaking" class="volume-indicator">
           <div class="volume-bar">
-            <div class="volume-fill" :style="{ width: appStore.currentVolume + '%' }"></div>
+            <div class="volume-fill" :style="{
+              width: appStore.currentVolume + '%',
+              background: getVolumeColor(appStore.currentVolume)
+            }"></div>
           </div>
           <span class="volume-text">{{ appStore.currentVolume }}%</span>
         </div>
+
       </div>
     </div>
 
@@ -40,7 +44,7 @@
             </svg>
           </n-icon>
           <span class="header-title">对话记录</span>
-          <n-badge :value="appStore.messages.length" :max="99" type="info" />
+          <n-badge :value="0" :max="99" type="info" />
         </div>
         <n-button text circle @click="showChat = false" class="collapse-btn">
           <template #icon>
@@ -53,29 +57,22 @@
         </n-button>
       </div>
       <div class="chat-body" ref="messagesListRef">
-        <div v-for="msg in appStore.messages" :key="msg.id" class="message-item" :class="msg.type">
-          <div class="message-bubble" :class="msg.type">
-            <div class="bubble-content">{{ msg.content }}</div>
-            <div class="bubble-time">{{ formatTime(msg.timestamp) }}</div>
-          </div>
-        </div>
-        <div v-if="appStore.messages.length === 0" class="empty-state">
-          <div class="empty-icon">💬</div>
-          <div class="empty-text">暂无对话</div>
-        </div>
+        <n-empty description="暂无对话" size="large">
+          <template #icon>
+            <div style="font-size: 64px; opacity: 0.3;">💬</div>
+          </template>
+        </n-empty>
       </div>
     </div>
 
     <!-- 展开按钮（右侧边缘） -->
     <transition name="fade">
       <div v-show="!showChat" class="expand-btn" @click="showChat = true">
-        <n-badge :value="appStore.messages.length" :max="99" :show="appStore.messages.length > 0">
-          <n-icon size="24" color="white">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" />
-            </svg>
-          </n-icon>
-        </n-badge>
+        <n-icon size="24" color="white">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" />
+          </svg>
+        </n-icon>
       </div>
     </transition>
   </div>
@@ -84,39 +81,19 @@
 <script lang="ts" setup>
 import { useAppStore } from '@/stores/app';
 import { useMessage } from 'naive-ui';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 const appStore = useAppStore();
 const message = useMessage();
 
 const connecting = ref(false);
 const showChat = ref(true);
-const messagesListRef = ref<HTMLElement | null>(null);
 
-// 监听消息变化，自动滚动到底部
-watch(
-  () => appStore.messages.length,
-  async (newLen, oldLen) => {
-    // 有新消息时自动展开
-    if (newLen > oldLen && newLen > 0) {
-      showChat.value = true;
-    }
-
-    await nextTick();
-    if (messagesListRef.value) {
-      messagesListRef.value.scrollTop = messagesListRef.value.scrollHeight;
-    }
-  }
-);
-
-// 格式化时间戳
-function formatTime(timestamp: number): string {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+// 根据音量返回颜色
+function getVolumeColor(volume: number): string {
+  if (volume < 30) return '#00c853';
+  if (volume < 60) return '#ffd600';
+  return '#ff6f00';
 }
 
 // 计算当前表情
@@ -124,13 +101,10 @@ const currentEmoji = computed(() => {
   if (!appStore.isConnected) {
     return '😴'; // 离线
   }
-  if (appStore.isSpeaking) {
-    return '🗣️'; // 说话中
+  if (appStore.isRecording) {
+    return '🗣️'; // 录音中
   }
-  if (appStore.isSessionActive) {
-    return '🤔'; // 思考中
-  }
-  return appStore.sessionEmoji || '😊'; // 默认聆听
+  return '😊'; // 默认待机
 });
 
 // 计算状态文本
@@ -138,13 +112,10 @@ const statusText = computed(() => {
   if (!appStore.isConnected) {
     return '点击连接';
   }
-  if (appStore.isSpeaking) {
-    return '说话中';
+  if (appStore.isRecording) {
+    return '录音中';
   }
-  if (appStore.isSessionActive) {
-    return appStore.sessionStatus || '处理中';
-  }
-  return '聆听中';
+  return '点击说话';
 });
 
 // 处理表情点击 - 开始/停止录音
@@ -157,11 +128,10 @@ function handleEmojiClick() {
 
   console.log('[Index] 点击表情，当前连接状态:', {
     isConnected: appStore.isConnected,
-    isSpeaking: appStore.isSpeaking,
-    isWSConnected: appStore.isWSConnected,
+    isRecording: appStore.isRecording,
   });
 
-  if (appStore.isSpeaking) {
+  if (appStore.isRecording) {
     appStore.stopRecording().catch((error: any) => {
       console.error('[Index] 停止录音失败:', error);
       message.error(error.message || '停止录音失败');
@@ -185,8 +155,14 @@ async function autoConnect() {
   try {
     console.log('[Index] 开始连接，OTA地址:', appStore.otaUrl);
     connecting.value = true;
+
+    // 初始化应用
+    await appStore.initialize();
+
+    // 连接服务器
     await appStore.connect();
-    console.log('[Index] 连接成功！isConnected:', appStore.isConnected);
+
+    console.log('[Index] 连接成功！');
     message.success('连接成功！');
   } catch (error: any) {
     console.error('[Index] 连接失败:', error);
@@ -196,12 +172,13 @@ async function autoConnect() {
   }
 }
 
+
+
 // 页面加载时自动连接
 onMounted(async () => {
   console.log('[Index] 页面加载，准备自动连接...');
   console.log('[Index] 当前连接状态:', {
     isConnected: appStore.isConnected,
-    isWSConnected: appStore.isWSConnected,
     otaUrl: appStore.otaUrl,
   });
 
@@ -212,13 +189,14 @@ onMounted(async () => {
       await autoConnect();
       console.log('[Index] 自动连接完成，最终状态:', {
         isConnected: appStore.isConnected,
-        isWSConnected: appStore.isWSConnected,
       });
     } else {
       console.log('[Index] 500ms后检查，已连接，跳过自动连接');
     }
   }, 500);
 });
+
+
 </script>
 
 <style lang="scss" scoped>
@@ -464,57 +442,30 @@ onMounted(async () => {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-.connection-indicator {
-  margin-top: 15px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-
-  .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-
-    &.connected {
-      background: #00c853;
-      box-shadow: 0 0 10px #00c853;
-      animation: blink 2s ease-in-out infinite;
-    }
-
-    &.connecting {
-      background: #ffa726;
-      animation: pulse 1s ease-in-out infinite;
-    }
-  }
-}
-
 // 音量指示器
 .volume-indicator {
   margin-top: 20px;
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 200px;
+  min-width: 240px;
 }
 
 .volume-bar {
   flex: 1;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 5px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
   overflow: hidden;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .volume-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00c853 0%, #64dd17 30%, #ffd600 60%, #ff6f00 100%);
-  transition: width 0.1s ease;
-  border-radius: 5px;
-  box-shadow: 0 0 8px rgba(255, 214, 0, 0.5);
+  transition: width 0.15s ease, background 0.3s ease;
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 .volume-text {
@@ -522,8 +473,8 @@ onMounted(async () => {
   text-align: right;
   color: white;
   font-weight: 600;
-  font-size: 14px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-size: 15px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 // 消息列表
@@ -641,6 +592,26 @@ onMounted(async () => {
       display: none;
     }
   }
+
+  // 音频消息样式
+  &.audio-message {
+    cursor: pointer;
+    user-select: none;
+    min-width: 120px;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &.playing {
+      animation: audioPulse 1s ease-in-out infinite;
+    }
+  }
 }
 
 .bubble-content {
@@ -650,33 +621,23 @@ onMounted(async () => {
   white-space: pre-wrap;
 }
 
+.audio-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .audio-text {
+    font-size: 14px;
+    flex: 1;
+  }
+}
+
 .bubble-time {
   font-size: 11px;
   margin-top: 6px;
   text-align: right;
   font-weight: 400;
   letter-spacing: 0.3px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  color: #aaa;
-
-  .empty-icon {
-    font-size: 64px;
-    opacity: 0.3;
-    margin-bottom: 16px;
-    animation: float 3s ease-in-out infinite;
-  }
-
-  .empty-text {
-    font-size: 16px;
-    font-weight: 500;
-  }
 }
 
 // 动画
@@ -771,6 +732,20 @@ onMounted(async () => {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes audioPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
   }
 }
 </style>

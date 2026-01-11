@@ -143,12 +143,35 @@ function createWindow(): void {
   });
 
   mainWindow.webContents.session.setPermissionCheckHandler(
-    (webContents, permission, _requestingOrigin, details) => {
-      console.log(webContents);
+    (_webContents, permission, _requestingOrigin, details) => {
+      console.log("[Main] 权限检查:", permission, details);
+
+      // 允许麦克风和摄像头权限
+      if (permission === "media") {
+        return true;
+      }
+
       if (permission === "hid" && details.securityOrigin === "file:///") {
         return true;
       }
       return true;
+    }
+  );
+
+  // 设置权限请求处理器（用户请求权限时）
+  mainWindow.webContents.session.setPermissionRequestHandler(
+    (_webContents, permission, callback) => {
+      console.log("[Main] 权限请求:", permission);
+
+      // 自动允许麦克风和摄像头权限
+      if (permission === "media") {
+        console.log("[Main] ✅ 允许媒体权限:", permission);
+        callback(true);
+        return;
+      }
+
+      // 默认允许所有权限（开发环境）
+      callback(true);
     }
   );
 
