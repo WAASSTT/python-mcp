@@ -3,7 +3,11 @@
     <!-- 左侧主表情区域 -->
     <div class="left-section">
       <div class="emoji-display" @click="handleEmojiClick">
-        <div class="emoji-circle" :class="{ active: appStore.isConnected, speaking: appStore.isRecording }">
+        <div class="emoji-circle" :class="{
+          active: appStore.isConnected,
+          speaking: appStore.isRecording,
+          playing: appStore.isSpeaking
+        }">
           <span class="emoji-icon">{{ currentEmoji }}</span>
         </div>
         <div class="status-text">{{ statusText }}</div>
@@ -101,8 +105,11 @@ const currentEmoji = computed(() => {
   if (!appStore.isConnected) {
     return '😴'; // 离线
   }
+  if (appStore.isSpeaking) {
+    return appStore.currentEmotion || '🎤'; // 服务器正在说话
+  }
   if (appStore.isRecording) {
-    return '🗣️'; // 录音中
+    return '🗣️'; // 用户录音中
   }
   return '😊'; // 默认待机
 });
@@ -111,6 +118,9 @@ const currentEmoji = computed(() => {
 const statusText = computed(() => {
   if (!appStore.isConnected) {
     return '点击连接';
+  }
+  if (appStore.isSpeaking) {
+    return '点击打断';
   }
   if (appStore.isRecording) {
     return '录音中';
@@ -123,6 +133,16 @@ function handleEmojiClick() {
   if (!appStore.isConnected) {
     console.log('[Index] 点击表情，当前未连接，开始连接...');
     autoConnect();
+    return;
+  }
+
+  // 如果服务器正在说话，打断播放并开始录音
+  if (appStore.isSpeaking) {
+    console.log('[Index] 打断服务器播放，准备开始录音');
+    appStore.interruptAndStartRecording().catch((error: any) => {
+      console.error('[Index] 打断并录音失败:', error);
+      message.error(error.message || '操作失败');
+    });
     return;
   }
 
@@ -427,6 +447,12 @@ onMounted(async () => {
     background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
     box-shadow: 0 20px 60px rgba(253, 203, 110, 0.5), 0 0 0 8px rgba(255, 234, 167, 0.3);
   }
+
+  &.playing {
+    animation: playing 1s ease-in-out infinite;
+    background: linear-gradient(135deg, #a8e6cf 0%, #56ccf2 100%);
+    box-shadow: 0 20px 60px rgba(86, 204, 242, 0.5), 0 0 0 8px rgba(168, 230, 207, 0.3);
+  }
 }
 
 .emoji-icon {
@@ -686,6 +712,26 @@ onMounted(async () => {
 
   50% {
     transform: scale(1.08);
+  }
+}
+
+@keyframes playing {
+
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  25% {
+    transform: scale(1.03) rotate(1deg);
+  }
+
+  50% {
+    transform: scale(1.06) rotate(0deg);
+  }
+
+  75% {
+    transform: scale(1.03) rotate(-1deg);
   }
 }
 

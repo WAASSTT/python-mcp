@@ -185,6 +185,35 @@ export const useAppStore = defineStore("app", () => {
   }
 
   /**
+   * 打断播放并开始录音
+   */
+  async function interruptAndStartRecording() {
+    if (!app) {
+      throw new Error("应用未初始化");
+    }
+
+    console.log("[AppStore] 打断播放并开始录音...");
+
+    // 发送中止消息到服务器
+    const websocketHandler = app.getWebSocketHandler();
+    websocketHandler.sendAbort();
+
+    // 停止并清空音频播放
+    const audioPlayer = app.getAudioPlayer();
+    audioPlayer.stop();
+
+    // 更新状态
+    isSpeaking.value = false;
+
+    // 开始录音
+    const success = await app.startRecording();
+    if (!success) {
+      throw new Error("开始录音失败");
+    }
+    console.log("[AppStore] 已打断播放并开始录音");
+  }
+
+  /**
    * 更新设备配置
    */
   function updateDeviceConfig(
@@ -262,6 +291,7 @@ export const useAppStore = defineStore("app", () => {
     sendText,
     startRecording,
     stopRecording,
+    interruptAndStartRecording,
     updateDeviceConfig,
     updateOTAUrl,
     getMCPManager,

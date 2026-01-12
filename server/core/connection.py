@@ -308,10 +308,7 @@ class ConnectionHandler:
         if isinstance(message, str):
             await handleTextMessage(self, message)
         elif isinstance(message, bytes):
-            self.logger.bind(tag=TAG).info(f"📦 收到音频数据: {len(message)} bytes")
-
             if self.vad is None or self.asr is None:
-                self.logger.bind(tag=TAG).warning(f"⚠️ VAD/ASR 未初始化，丢弃音频")
                 return
 
             # 处理来自MQTT网关的音频包
@@ -322,7 +319,6 @@ class ConnectionHandler:
 
             # 不需要头部处理或没有头部时，直接处理原始消息
             self.asr_audio_queue.put(message)
-            self.logger.bind(tag=TAG).info(f"✅ 音频已加入队列")
 
     async def _process_mqtt_audio_message(self, message):
         """
@@ -342,7 +338,7 @@ class ConnectionHandler:
             # 提取音频数据
             if audio_length > 0 and len(message) >= 16 + audio_length:
                 # 有指定长度，提取精确的音频数据
-                audio_data = message[16: 16 + audio_length]
+                audio_data = message[16 : 16 + audio_length]
                 # 基于时间戳进行排序处理
                 self._process_websocket_audio(audio_data, timestamp)
                 return True

@@ -19,6 +19,10 @@ export {
 
 // 音频模块
 export {
+  getModernAudioPlayer,
+  ModernAudioPlayer,
+} from "./core/audio/modern-player";
+export {
   checkOpusLoaded,
   initOpusDecoder,
   initOpusEncoder,
@@ -26,7 +30,6 @@ export {
   type OpusDecoder,
   type OpusEncoder,
 } from "./core/audio/opus-codec";
-export { AudioPlayer, getAudioPlayer } from "./core/audio/player";
 export {
   AudioRecorder,
   MediaRecorderOpusEncoder,
@@ -34,10 +37,6 @@ export {
   type RecordingCallback,
   type VisualizerCallback,
 } from "./core/audio/recorder";
-export {
-  createStreamingContext,
-  StreamingContext,
-} from "./core/audio/stream-context";
 
 // 网络模块
 export {

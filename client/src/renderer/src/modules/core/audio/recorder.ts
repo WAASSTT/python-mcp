@@ -3,8 +3,8 @@
  */
 
 import { logger } from "../../utils/logger";
+import { getModernAudioPlayer } from "./modern-player";
 import { initOpusEncoder, type OpusEncoder } from "./opus-codec";
-import { getAudioPlayer } from "./player";
 
 export type RecordingCallback = () => void;
 export type VisualizerCallback = (
@@ -37,7 +37,7 @@ export class AudioRecorder {
    */
   private getAudioContext(): AudioContext {
     if (!this.audioContext) {
-      const audioPlayer = getAudioPlayer();
+      const audioPlayer = getModernAudioPlayer();
       this.audioContext = audioPlayer.getAudioContext();
     }
     return this.audioContext;
@@ -65,33 +65,59 @@ export class AudioRecorder {
 
     try {
       if (this.audioContext.audioWorklet) {
-        const processorCode = this.getAudioProcessorCode();
-        const blob = new Blob([processorCode], {
-          type: "application/javascript",
-        });
-        const url = URL.createObjectURL(blob);
-        await this.audioContext.audioWorklet.addModule(url);
-        URL.revokeObjectURL(url);
+        // 检查是否已经注册过processor，避免重复注册
+        try {
+          // 尝试直接创建节点，如果processor已注册则会成功
+          const audioProcessor = new AudioWorkletNode(
+            this.audioContext,
+            "audio-recorder-processor"
+          );
 
-        const audioProcessor = new AudioWorkletNode(
-          this.audioContext,
-          "audio-recorder-processor"
-        );
+          audioProcessor.port.onmessage = (event) => {
+            if (event.data.type === "buffer") {
+              this.processPCMBuffer(event.data.buffer);
+            }
+          };
 
-        audioProcessor.port.onmessage = (event) => {
-          if (event.data.type === "buffer") {
-            this.processPCMBuffer(event.data.buffer);
-          }
-        };
+          logger.success("使用已注册的AudioWorklet处理音频");
 
-        logger.success("使用AudioWorklet处理音频");
+          const silent = this.audioContext.createGain();
+          silent.gain.value = 0;
+          audioProcessor.connect(silent);
+          silent.connect(this.audioContext.destination);
 
-        const silent = this.audioContext.createGain();
-        silent.gain.value = 0;
-        audioProcessor.connect(silent);
-        silent.connect(this.audioContext.destination);
+          return { node: audioProcessor, type: "worklet" };
+        } catch (e) {
+          // Processor未注册，需要先注册
+          logger.debug("AudioWorklet processor未注册，开始注册...");
+          const processorCode = this.getAudioProcessorCode();
+          const blob = new Blob([processorCode], {
+            type: "application/javascript",
+          });
+          const url = URL.createObjectURL(blob);
+          await this.audioContext.audioWorklet.addModule(url);
+          URL.revokeObjectURL(url);
 
-        return { node: audioProcessor, type: "worklet" };
+          const audioProcessor = new AudioWorkletNode(
+            this.audioContext,
+            "audio-recorder-processor"
+          );
+
+          audioProcessor.port.onmessage = (event) => {
+            if (event.data.type === "buffer") {
+              this.processPCMBuffer(event.data.buffer);
+            }
+          };
+
+          logger.success("使用AudioWorklet处理音频");
+
+          const silent = this.audioContext.createGain();
+          silent.gain.value = 0;
+          audioProcessor.connect(silent);
+          silent.connect(this.audioContext.destination);
+
+          return { node: audioProcessor, type: "worklet" };
+        }
       } else {
         logger.warning(
           "AudioWorklet不可用，使用ScriptProcessorNode作为回退方案"
@@ -259,9 +285,14 @@ export class AudioRecorder {
     const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
     this.analyser.getByteFrequencyData(dataArray);
 
-    // 计算音量
-    const sum = dataArray.reduce((a, b) => a + b, 0);
-    const volume = Math.round((sum / dataArray.length / 255) * 100);
+    // 改进的音量计算：使用 RMS (均方根) 方法
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      const normalized = dataArray[i] / 255;
+      sum += normalized * normalized;
+    }
+    const rms = Math.sqrt(sum / dataArray.length);
+    const volume = Math.round(Math.min(rms * 200, 100)); // 放大并限制在100以内
 
     if (this.onVisualizerUpdate) {
       this.onVisualizerUpdate(dataArray, volume);

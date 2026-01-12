@@ -4,8 +4,8 @@
  */
 
 import { configManager, type DeviceConfig } from "./config/manager";
+import { getModernAudioPlayer } from "./core/audio/modern-player";
 import { checkOpusLoaded } from "./core/audio/opus-codec";
-import { getAudioPlayer } from "./core/audio/player";
 import { AudioRecorder } from "./core/audio/recorder";
 import { getMCPToolsManager } from "./core/mcp/tools";
 import { getWebSocketHandler } from "./core/network/websocket";
@@ -14,7 +14,7 @@ import { logger } from "./utils/logger";
 
 export class App {
   // 核心实例
-  private audioPlayer = getAudioPlayer();
+  private audioPlayer = getModernAudioPlayer();
   private audioRecorder: AudioRecorder | null = null;
   private websocketHandler = getWebSocketHandler();
   private mcpToolsManager = getMCPToolsManager();
@@ -51,7 +51,7 @@ export class App {
     }
 
     // 初始化音频播放器
-    await this.audioPlayer.start();
+    await this.audioPlayer.initialize();
 
     // 初始化录音器
     this.audioRecorder = new AudioRecorder();
@@ -129,6 +129,12 @@ export class App {
     // 会话状态变化
     this.websocketHandler.onSessionStateChange = (isSpeaking) => {
       this.uiController.updateSessionStatus(isSpeaking);
+
+      // 服务器开始说话时，停止客户端录音
+      if (isSpeaking && this.isRecording) {
+        logger.info("服务器开始说话，停止录音");
+        this.stopRecording();
+      }
     };
 
     // 会话表情变化
@@ -387,6 +393,19 @@ export class App {
    */
   public getMCPToolsManager(): typeof this.mcpToolsManager {
     return this.mcpToolsManager;
+  }
+
+  /**   * 获取音频播放器
+   */
+  public getAudioPlayer() {
+    return this.audioPlayer;
+  }
+
+  /**
+   * 获取WebSocket处理器
+   */
+  public getWebSocketHandler() {
+    return this.websocketHandler;
   }
 
   /**

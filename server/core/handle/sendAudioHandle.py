@@ -64,7 +64,8 @@ async def _wait_for_audio_completion(conn):
         # 等待预缓冲包播放完成
         # 前N个包直接发送，增加2个网络抖动包，需要额外等待它们在客户端播放完成
         frame_duration_ms = rate_controller.frame_duration
-        pre_buffer_playback_time = (PRE_BUFFER_COUNT + 2) * frame_duration_ms / 1000.0
+        pre_buffer_playback_time = (
+            PRE_BUFFER_COUNT + 2) * frame_duration_ms / 1000.0
         await asyncio.sleep(pre_buffer_playback_time)
 
         conn.logger.bind(tag=TAG).debug("音频发送完成")
@@ -290,6 +291,7 @@ async def send_stt_message(conn, text):
         display_text = text
     stt_text = textUtils.get_string_no_punctuation_or_emoji(display_text)
     await conn.websocket.send(
-        json.dumps({"type": "stt", "text": stt_text, "session_id": conn.session_id})
+        json.dumps({"type": "stt", "text": stt_text,
+                   "session_id": conn.session_id})
     )
     await send_tts_message(conn, "start")

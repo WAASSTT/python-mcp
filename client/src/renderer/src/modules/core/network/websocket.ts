@@ -4,7 +4,7 @@
 
 import type { DeviceConfig } from "../../config/manager";
 import { logger } from "../../utils/logger";
-import { getAudioPlayer } from "../audio/player";
+import { getModernAudioPlayer } from "../audio/modern-player";
 import { webSocketConnect } from "./ota-connector";
 
 export type ConnectionStateCallback = (isConnected: boolean) => void;
@@ -48,6 +48,9 @@ export class WebSocketHandler {
       }
 
       this.websocket = ws;
+
+      // 设置二进制数据类型为 arraybuffer（默认是 blob）
+      this.websocket.binaryType = "arraybuffer";
 
       // 设置事件监听器
       this.websocket.onopen = () => this.handleOpen();
@@ -104,6 +107,17 @@ export class WebSocketHandler {
     return this.send({
       type: "text",
       text,
+    });
+  }
+
+  /**
+   * 发送中止消息
+   */
+  public sendAbort(): boolean {
+    logger.info("发送中止消息");
+    return this.send({
+      type: "abort",
+      session_id: this.currentSessionId,
     });
   }
 
@@ -211,10 +225,19 @@ export class WebSocketHandler {
   /**
    * 处理消息
    */
-  private handleMessage(event: MessageEvent): void {
-    // 处理二进制音频数据
+  private async handleMessage(event: MessageEvent): Promise<void> {
+    // 处理二进制音频数据 (ArrayBuffer)
     if (event.data instanceof ArrayBuffer) {
+      logger.info(`收到ArrayBuffer音频数据: ${event.data.byteLength} 字节`);
       this.handleBinaryMessage(event.data);
+      return;
+    }
+
+    // 处理二进制音频数据 (Blob)
+    if (event.data instanceof Blob) {
+      logger.info(`收到Blob音频数据: ${event.data.size} 字节`);
+      const arrayBuffer = await event.data.arrayBuffer();
+      this.handleBinaryMessage(arrayBuffer);
       return;
     }
 
@@ -223,7 +246,11 @@ export class WebSocketHandler {
       const message: WebSocketMessage = JSON.parse(event.data);
       this.handleTextMessage(message);
     } catch (error) {
-      logger.error("消息解析失败");
+      logger.error(
+        `消息解析失败: ${error}, 数据类型: ${typeof event.data}, 数据: ${
+          event.data
+        }`
+      );
     }
   }
 
@@ -232,8 +259,10 @@ export class WebSocketHandler {
    */
   private handleBinaryMessage(data: ArrayBuffer): void {
     const audioData = new Uint8Array(data);
-    const audioPlayer = getAudioPlayer();
-    audioPlayer.receiveAudio([audioData]);
+    logger.info(`收到音频数据: ${audioData.length} 字节`);
+
+    const audioPlayer = getModernAudioPlayer();
+    audioPlayer.playAudio(audioData);
   }
 
   /**
@@ -292,6 +321,10 @@ export class WebSocketHandler {
       logger.info("服务器开始发送语音");
       this.currentSessionId = message.session_id;
 
+      // 清空旧的音频缓冲，准备接收新的音频流
+      const audioPlayer = getModernAudioPlayer();
+      audioPlayer.clear();
+
       if (this.onSessionStateChange) {
         this.onSessionStateChange(true);
       }
@@ -301,9 +334,6 @@ export class WebSocketHandler {
       logger.info(`语音段结束: ${message.text}`);
     } else if (message.state === "stop") {
       logger.info("服务器语音传输结束");
-
-      const audioPlayer = getAudioPlayer();
-      audioPlayer.clearBuffers();
 
       if (this.onSessionStateChange) {
         this.onSessionStateChange(false);
