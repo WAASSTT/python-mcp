@@ -64,8 +64,7 @@ async def _wait_for_audio_completion(conn):
         # 等待预缓冲包播放完成
         # 前N个包直接发送，增加2个网络抖动包，需要额外等待它们在客户端播放完成
         frame_duration_ms = rate_controller.frame_duration
-        pre_buffer_playback_time = (
-            PRE_BUFFER_COUNT + 2) * frame_duration_ms / 1000.0
+        pre_buffer_playback_time = (PRE_BUFFER_COUNT + 2) * frame_duration_ms / 1000.0
         await asyncio.sleep(pre_buffer_playback_time)
 
         conn.logger.bind(tag=TAG).debug("音频发送完成")
@@ -134,12 +133,27 @@ def _get_or_create_rate_controller(conn, frame_duration, is_single_packet):
     Returns:
         (rate_controller, flow_control)
     """
-    # 判断是否需要重置：单包模式且 sentence_id 变化，或者控制器不存在
-    need_reset = (
-        is_single_packet
-        and getattr(conn, "audio_flow_control", {}).get("sentence_id")
-        != conn.sentence_id
-    ) or not hasattr(conn, "audio_rate_controller")
+    # 检查是否需要重置控制器
+    need_reset = False
+
+    if not hasattr(conn, "audio_rate_controller"):
+        # 控制器不存在，需要创建
+        need_reset = True
+    else:
+        rate_controller = conn.audio_rate_controller
+
+        # 后台发送任务已停止, 则需要重置
+        if (
+            not rate_controller.pending_send_task
+            or rate_controller.pending_send_task.done()
+        ):
+            need_reset = True
+        # 当sentence_id 变化，需要重置
+        elif (
+            getattr(conn, "audio_flow_control", {}).get("sentence_id")
+            != conn.sentence_id
+        ):
+            need_reset = True
 
     if need_reset:
         # 创建或获取 rate_controller
@@ -291,7 +305,6 @@ async def send_stt_message(conn, text):
         display_text = text
     stt_text = textUtils.get_string_no_punctuation_or_emoji(display_text)
     await conn.websocket.send(
-        json.dumps({"type": "stt", "text": stt_text,
-                   "session_id": conn.session_id})
+        json.dumps({"type": "stt", "text": stt_text, "session_id": conn.session_id})
     )
     await send_tts_message(conn, "start")
