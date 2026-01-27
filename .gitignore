@@ -1,0 +1,111 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虚拟环境
+venv/
+ENV/
+env/
+.venv
+
+# PyCharm
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# 日志文件
+*.log
+logs/
+tmp/
+*.tmp
+
+# 配置文件（保护敏感信息）
+server/data/
+.env
+.env.local
+
+# 音频临时文件
+tmp/asr/*
+tmp/tts/*
+
+# Node.js / 前端
+client/node_modules/
+client/dist/
+client/.DS_Store
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
+client/pnpm-debug.log*
+client/lerna-debug.log*
+client/.npmrc
+client/package-lock.json
+
+# 前端构建产物
+client/dist-ssr
+client/*.local
+
+# Elysia 相关
+server/node_modules/
+server/dist/
+server/bun.lock
+server/data/
+server/tmp/
+server/.env.production
+server/models/
+server/music/
+
+
+# Editor directories and files
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 测试覆盖率
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# 备份文件
+*.bak
+*.backup
+*~
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 固件文件（可选，根据需要调整）
+data/bin/*

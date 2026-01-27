@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "none",
+  "experimentalSortImports": {
+    "internalPattern": ["@/**", "~/**"],
+    "groups": [
+      ["builtin", "external"],
+      ["internal"],
+      ["parent", "sibling", "index"],
+      ["type"]
+    ]
+  },
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "out",
+    "certs",
+    "build",
+    "resources",
+    "*.log",
+    "*.min.js",
+    "*.min.css",
+    "*-lock.yaml",
+    "*-lock.json",
+    "*.d.ts",
+    "auto-imports.d.ts",
+    "components.d.ts"
+  ]
+}

@@ -1,0 +1,9 @@
+node_modules
+dist
+out
+.DS_Store
+*.log*
+certs
+!certs/mkcert
+!certs/mkcert.exe
+stats.html

@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "typescript", "unicorn", "promise"],
+  "rules": {
+    "typescript": "warn",
+    "import": "warn",
+    "promise": "warn",
+    "unicorn": "warn",
+    "oxc": "warn"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2021": true
+  },
+  "globals": {
+    "__dirname": "readonly",
+    "__filename": "readonly",
+    "process": "readonly",
+    "NodeJS": "readonly",
+    "console": "readonly"
+  },
+  "ignore": [
+    "node_modules",
+    "dist",
+    "out",
+    "build",
+    "*.d.ts",
+    "auto-imports.d.ts",
+    "components.d.ts"
+  ]
+}

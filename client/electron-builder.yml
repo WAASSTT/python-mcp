@@ -1,0 +1,493 @@
+# ============================================================================
+# Electron Builder 配置文件
+# 文档: https://www.electron.build/configuration/configuration
+# ============================================================================
+
+# -------------------- 应用基础信息 --------------------
+# 应用标识符 (Application ID)
+# 用途: macOS 的 CFBundleIdentifier 和 Windows 的 Application User Model ID
+# 格式: 反向域名格式 (com.company.product)
+# 建议: 使用您公司的域名，确保全局唯一性
+appId: com.instant.demo
+
+# 产品名称 (Product Name)
+# 用途: 应用程序显示名称，用于桌面快捷方式、开始菜单等
+# 注意: 可以包含空格和特殊字符，与 package.json 中的 name 不同
+productName: demo
+
+# -------------------- 构建目录配置 --------------------
+directories:
+  # 构建资源目录 (图标、安装程序背景等)
+  buildResources: build
+  # 构建输出目录 (打包后的安装程序存放位置)
+  output: dist
+
+# -------------------- 文件打包规则 --------------------
+# 定义哪些文件应该被排除在最终打包之外
+# 以 '!' 开头表示排除，默认包含所有文件
+files:
+  # ============================================================================
+  # 1. 版本控制和 IDE 配置（开发工具）
+  # ============================================================================
+  - '!**/.git/**' # Git 仓库目录
+  - '!**/.vscode/**' # VS Code 配置
+  - '!**/.idea/**' # JetBrains IDE 配置
+  - '!**/.vs/**' # Visual Studio 配置
+  - '!.gitignore' # Git 忽略规则
+  - '!.gitattributes' # Git 属性配置
+  - '!.editorconfig' # 编辑器配置
+
+  # ============================================================================
+  # 2. 源代码目录（已编译到 out 目录）
+  # ============================================================================
+  - '!src/**' # TypeScript/Vue 源代码
+
+  # ============================================================================
+  # 3. 构建相关目录
+  # ============================================================================
+  - '!dist/**' # 构建输出目录（安装包存放位置）
+  # 注意：不要排除 out/** 目录！
+  # out 目录包含 electron-vite 编译后的代码（main/preload/renderer），
+  # electron-builder 需要这些文件来生成 app.asar 和最终的安装包
+  - '!certs/**' # 开发证书目录
+  # 注意：不要排除 build/** 目录！
+  # build 目录被设置为 buildResources，包含图标、权限配置等打包必需的资源
+  # electron-builder 会自动从 buildResources 目录获取这些文件
+
+  # ============================================================================
+  # 4. 配置文件（构建和开发工具）
+  # ============================================================================
+  # Vite 和 Electron 配置
+  - '!vite.config.ts'
+  - '!electron.vite.config.ts'
+  - '!electron-builder.yml'
+
+  # TypeScript 配置
+  - '!tsconfig*.json'
+
+  # 其他构建工具配置
+  - '!*.config.{js,ts,mjs,cjs}'
+  # 其他构建工具配置文件
+  - '!stats.html' # 构建统计报告
+
+  # ============================================================================
+  # 5. 代码质量工具配置
+  # ============================================================================
+  - '!.prettierrc*' # Prettier 格式化配置
+  - '!.prettierignore' # Prettier 忽略规则
+  - '!oxlintrc.json' # OXLint 配置
+  - '!.eslintrc*' # ESLint 配置
+  - '!eslint.config.*' # ESLint 扁平化配置
+
+  # ============================================================================
+  # 6. 包管理器文件
+  # ============================================================================
+  - '!package-lock.json' # npm 锁文件
+  - '!pnpm-lock.yaml' # pnpm 锁文件
+  - '!yarn.lock' # Yarn 锁文件
+  - '!.npmrc' # npm 配置
+  - '!.yarnrc*' # Yarn 配置
+
+  # ============================================================================
+  # 7. 环境变量文件（可能包含敏感信息）
+  # ============================================================================
+  - '!.env*' # 所有环境变量文件
+
+  # ============================================================================
+  # 8. 文档和许可证
+  # ============================================================================
+  - '!README*.md' # 项目说明文档
+  - '!CHANGELOG*.md' # 更新日志
+  - '!LICENSE*' # 许可证文件
+  - '!CONTRIBUTING*.md' # 贡献指南
+
+  # ============================================================================
+  # 9. 更新配置（开发环境）
+  # ============================================================================
+  - '!dev-app-update.yml' # 开发环境更新配置
+
+  # ============================================================================
+  # 10. 日志和临时文件
+  # ============================================================================
+  - '!*.log' # 日志文件
+  - '!*.tmp' # 临时文件
+  - '!*.temp' # 临时文件
+  - '!*.swp' # Vim 交换文件
+  - '!*.swo' # Vim 交换文件
+
+  # ============================================================================
+  # 11. 测试相关文件
+  # ============================================================================
+  - '!**/__tests__/**' # 测试目录
+  - '!**/__mocks__/**' # Mock 目录
+  - '!**/__fixtures__/**' # 测试固件
+  - '!**/*.{test,spec}.{js,ts,jsx,tsx}' # 测试文件
+
+  # ============================================================================
+  # 12. 系统文件
+  # ============================================================================
+  - '!.DS_Store' # macOS 系统文件
+  - '!Thumbs.db' # Windows 缩略图缓存
+  - '!desktop.ini' # Windows 文件夹配置
+
+  # ============================================================================
+  # 13. CI/CD 配置
+  # ============================================================================
+  - '!.github/**' # GitHub Actions
+  - '!.gitlab-ci.yml' # GitLab CI
+  - '!.travis.yml' # Travis CI
+  - '!appveyor.yml' # AppVeyor
+  - '!azure-pipelines.yml' # Azure Pipelines
+
+# -------------------- ASAR 打包配置 --------------------
+# 参考: https://builder.electron.js.cn/configuration/configuration.html#Configuration-asar
+#
+# ASAR (Electron Archive) 是 Electron 的归档格式,类似于 tar
+#
+# asar: 是否启用 ASAR 打包
+# - true (默认): 将应用文件打包成 app.asar
+# - false: 保持文件夹结构
+#
+# 优点:
+# ✅ 提高文件读取性能 (减少文件系统调用)
+# ✅ 一定程度保护源码 (虽然仍可被解包)
+# ✅ 减少文件数量 (便于分发和管理)
+# ✅ 加快应用启动速度
+#
+# 缺点:
+# ❌ 无法直接访问 ASAR 内的文件 (需要解包)
+# ❌ 某些原生模块可能不兼容
+asar: true
+
+# asarUnpack: 指定哪些文件/目录需要排除在 ASAR 之外
+# 参考: https://builder.electron.js.cn/configuration/configuration.html#Configuration-asarUnpack
+#
+# 使用场景:
+# 1. 原生 Node 模块 (.node 文件)
+# 2. 需要被外部进程访问的文件 (如 NSIS 安装器需要的图标)
+# 3. 动态加载的资源文件
+# 4. 二进制可执行文件
+#
+# 格式: 使用 glob 模式匹配
+asarUnpack:
+  # resources 目录 (证书、配置文件等)
+  # 原因: NSIS 安装时需要访问证书文件
+  - resources/**
+
+  # renderer 静态资源 (图片、SVG、字体等)
+  # 原因: NSIS 安装器需要显示应用图标和界面图片
+  # 详细说明: 这些文件在安装过程中被 NSIS 脚本引用
+  - out/renderer/**
+
+# -------------------- 压缩级别配置 --------------------
+# 参考: https://builder.electron.js.cn/configuration/configuration.html#Metadata-compression
+#
+# 可选值:
+# - store: 不压缩 (最快,体积最大) - 仅用于快速测试
+# - normal: 标准 LZMA 压缩 (推荐) - 平衡速度与体积
+# - maximum: 最大 LZMA 压缩 (慢,体积略小) - 正式发布可用
+#
+# 说明:
+# - electron-builder 26.x 使用 NSIS 3.08,支持多线程 LZMA 压缩
+# - normal 级别已经能提供很好的压缩率 (~40-50% 压缩)
+# - maximum 仅能额外减少 5-10% 体积,但构建时间增加 2-3 倍
+# - 多线程压缩会自动启用,无需额外配置
+#
+# 推荐配置:
+# - 开发测试: store
+# - 日常构建: normal ✅ (当前)
+# - 正式发布: normal 或 maximum
+compression: normal
+
+# -------------------- Windows 平台配置 --------------------
+win:
+  # Windows 可执行文件名称 (不含 .exe 扩展名)
+  executableName: demo
+  # 构建目标配置
+  target:
+    - target: nsis # 使用 NSIS 安装程序
+      arch:
+        - x64 # 64位版本（推荐，现代系统标配）
+        # - ia32 # 32位版本（可选，如果需要兼容老旧系统可取消注释）
+
+  # 💡 说明：
+  # - 现代 Windows 系统基本都是 64 位
+  # - 只构建 x64 可以减少一半的构建时间和存储空间
+  # - 如果确实需要支持 32 位系统，取消上面 ia32 的注释
+
+# -------------------- NSIS 安装程序配置 --------------------
+# NSIS (Nullsoft Scriptable Install System) 是 Windows 平台的安装程序生成器
+nsis:
+  # 全局唯一标识符 (GUID)
+  # 用途: 在 Windows 注册表中唯一标识此应用程序
+  # 格式: 标准 GUID 格式 (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+  # 重要性:
+  #   - 确保应用在 Windows 系统中被正确识别和管理
+  #   - 防止与其他应用或同一应用的不同版本产生冲突
+  #   - 在应用商店、企业部署(GPO/SCCM)等场景中必需
+  #   - 卸载时能正确清理注册表项
+  # ⚠️ 注意: 一旦发布，永远不要更改此 GUID！
+  guid: 01234567-89ab-cdef-0123-456789abcdef
+
+  # 安装包文件名模板
+  # 变量说明:
+  #   ${productName} - 产品名称
+  #   ${version} - 版本号
+  #   ${arch} - 架构 (x64, ia32, arm64 等)
+  #   ${ext} - 扩展名 (exe)
+  #
+  # 📦 当前配置说明：
+  # - 使用 ${arch} 变量会为每个架构生成独立的安装包
+  # - 生成文件: 英斯特A926驱动-1.0.0-x64-setup.exe, 英斯特A926驱动-1.0.0-ia32-setup.exe
+  # - 优点: 用户可以选择下载对应架构的版本,包体积更小
+  #
+  # 💡 如果希望生成单个通用安装包（包含所有架构）：
+  # - 将下面改为: artifactName: ${productName}-${version}-setup.${ext}
+  # - 生成文件: 英斯特A926驱动-1.0.0-setup.exe (包含 x64 和 ia32)
+  # - 优点: 用户只需下载一个文件，安装时自动选择架构
+  # - 缺点: 包体积约为单架构的两倍
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+
+  # 桌面快捷方式名称
+  shortcutName: ${productName}
+
+  # 控制面板中显示的卸载程序名称
+  uninstallDisplayName: ${productName}
+
+  # -------------------- 安装选项配置 --------------------
+  # 💡 以下选项由 electron-builder 自动处理，无需自定义脚本
+
+  # 是否创建桌面快捷方式
+  # 可选值:
+  #   - always: 总是创建，不询问用户
+  #   - false: 从不创建
+  #   - true (默认): 在安装向导中让用户选择
+  createDesktopShortcut: true
+
+  # 是否创建开始菜单快捷方式
+  # 默认: true (推荐保持开启)
+  createStartMenuShortcut: true
+
+  # 是否使用一键安装模式
+  # false: 显示安装向导，允许用户自定义安装路径和选项
+  # true: 静默安装，不显示任何界面
+  oneClick: false
+
+  # 是否允许用户更改安装目录
+  # 仅在 oneClick: false 时有效
+  allowToChangeInstallationDirectory: true
+
+  # 是否为所有用户安装 (需要管理员权限)
+  # false: 仅为当前用户安装 (推荐，无需管理员权限)
+  # true: 为所有用户安装 (安装到 Program Files)
+  perMachine: false
+
+  # 是否允许提升权限 (请求管理员权限)
+  # true: 如果需要可以请求管理员权限
+  # false: 永不请求管理员权限
+  allowElevation: true
+
+  # 卸载时是否删除应用数据
+  # false: 保留用户数据 (推荐，避免数据丢失)
+  # true: 完全清理所有数据
+  deleteAppDataOnUninstall: false
+
+  # 安装完成后是否运行应用
+  # true: 在安装向导最后一页显示"运行应用"复选框
+  # false: 不显示
+  runAfterFinish: true
+
+  # 安装程序图标
+  installerIcon: build/icon.ico
+
+  # 卸载程序图标
+  uninstallerIcon: build/icon.ico
+
+  # -------------------- 安装程序语言配置 --------------------
+  # 指定 NSIS 安装程序支持的语言
+  # 默认会包含所有可用语言，指定语言可以减小安装包体积
+  installerLanguages:
+    - zh_CN # 简体中文
+    - en_US # 英语
+
+  # -------------------- 增量更新配置 --------------------
+  # 参考: https://builder.electron.js.cn/configuration/nsis.html#NsisOptions-differentialPackage
+  #
+  # differentialPackage: 启用差分/增量更新
+  # - true: 生成 .blockmap 文件用于增量更新
+  # - false (默认): 仅生成完整安装包
+  #
+  # 🚀 工作原理：
+  # 1. 构建时生成:
+  #    ├─ xxx-setup.exe          (完整安装包)
+  #    └─ xxx-setup.exe.blockmap (区块映射文件)
+  #
+  # 2. 更新时流程：
+  #    ├─ electron-updater 下载 latest.yml
+  #    ├─ 下载新版本的 .blockmap 文件
+  #    ├─ 对比本地文件计算差异
+  #    ├─ 仅下载变化的区块 (通常 10-30%)
+  #    └─ 重组成完整安装包并安装
+  #
+  # 💡 优势：
+  # ✅ 大幅减少下载量 (节省 70-90% 带宽)
+  # ✅ 加快更新速度 (特别是大型应用)
+  # ✅ 对用户完全透明
+  # ✅ 更新失败可自动回退
+  #
+  # ⚠️ 注意事项：
+  # 1. 必须同时上传到更新服务器:
+  #    - latest.yml (版本信息)
+  #    - xxx-setup.exe (完整安装包)
+  #    - xxx-setup.exe.blockmap (必需!)
+  # 2. 首次安装用户仍需下载完整包
+  # 3. 仅适用于 NSIS 安装程序
+  # 4. 需要配合 electron-updater 使用
+  differentialPackage: true
+
+# -------------------- macOS 平台配置 --------------------
+mac:
+  # App Store 应用分类
+  # 参考: https://developer.apple.com/app-store/categories/
+  category: public.app-category.utilities
+
+  # 应用图标 (相对于项目根目录的路径)
+  # 注意：icon 配置需要相对于项目根目录，与 buildResources 无关
+  icon: build/icon.png
+
+  # 构建目标格式
+  target:
+    - dmg # DMG 磁盘映像 (常用分发格式)
+    - zip # ZIP 压缩包 (便于自动更新)
+
+  # 权限配置文件路径
+  # 用于配置应用所需的 macOS 权限和能力
+  entitlementsInherit: build/entitlements.mac.plist
+
+  # 代码签名配置
+  # 开发/测试阶段：明确设置为 null 以跳过签名，避免警告
+  # 生产环境：设置为有效的 "Developer ID Application" 证书名称
+  identity: null
+
+  # 启用加固运行时 (Hardened Runtime)
+  # macOS 10.14+ 的安全特性，公证必需
+  # 开发阶段可以设为 false
+  hardenedRuntime: false
+
+  # 是否在构建后评估 Gatekeeper
+  # false: 跳过评估 (开发阶段推荐)
+  gatekeeperAssess: false
+
+  # 扩展 Info.plist 配置
+  # 用于声明应用需要访问的系统资源和权限
+  extendInfo:
+    # 摄像头访问权限说明
+    NSCameraUsageDescription: 应用程序请求访问设备的摄像头。
+    # 麦克风访问权限说明
+    NSMicrophoneUsageDescription: 应用程序请求访问设备的麦克风。
+    # 文稿文件夹访问权限说明
+    NSDocumentsFolderUsageDescription: 应用程序请求访问用户的文稿文件夹。
+    # 下载文件夹访问权限说明
+    NSDownloadsFolderUsageDescription: 应用程序请求访问用户的下载文件夹。
+
+  # 是否进行公证 (Notarization)
+  # 注意: 需要配置 Apple ID 和应用专用密码
+  # 生产环境建议设为 true
+  notarize: false
+
+# -------------------- DMG 磁盘映像配置 --------------------
+# DMG 是 macOS 常用的应用分发格式
+dmg:
+  # DMG 文件名模板
+  artifactName: ${productName}-${version}.${ext}
+
+  # DMG 窗口标题
+  title: ${productName} ${version}
+
+  # DMG 卷图标 (必须使用 .icns 格式，相对于项目根目录的路径)
+  icon: build/icon.icns
+
+  # DMG 窗口内容布局
+  contents:
+    # 应用程序图标位置 (左侧)
+    - x: 140
+      y: 200
+      type: file
+
+    # Applications 文件夹的链接位置 (右侧)
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications
+
+# -------------------- Linux 平台配置 --------------------
+linux:
+  # 构建目标格式
+  # 注意: 在 Windows 上构建 AppImage 需要 Docker
+  # 推荐使用 deb 格式，兼容性好，易于安装和管理
+  target:
+    - AppImage # AppImage 格式 (便携式，无需安装)
+    - deb # Debian/Ubuntu 软件包格式
+
+  # 维护者信息 (显示在软件包信息中)
+  maintainer: Instant
+
+  # Linux 应用分类
+  # 参考: https://specifications.freedesktop.org/menu-spec/latest/apa.html
+  category: Utility
+
+  # 简短描述 (一行摘要)
+  synopsis: demo
+
+  # 详细描述
+  description: demo
+
+  # Linux 图标 (使用 PNG 格式避免 icns 转换问题)
+  # 如果没有 PNG 图标，electron-builder 会尝试转换 icns，导致需要 opj_decompress
+  # 临时方案：设置为 null 使用默认图标，或者准备一个 512x512 的 PNG 图标
+  icon: build/icon.png
+
+# -------------------- AppImage 配置 --------------------
+# AppImage 是 Linux 平台的便携式应用格式，无需安装即可运行
+appImage:
+  # AppImage 文件名模板
+  artifactName: ${productName}-${version}.${ext}
+
+# -------------------- 发布和更新配置 --------------------
+# 自动更新服务器配置
+publish:
+  # 发布提供商类型
+  # generic: 通用 HTTP 服务器
+  # 其他选项: github, s3, spaces, bintray 等
+  provider: generic
+
+  # 更新服务器地址
+  # 生产环境应替换为实际的更新服务器 URL
+  url: https://your-update-server.com/updates/
+
+  # 更新渠道
+  # 可用于区分稳定版、测试版等不同版本
+  channel: latest
+
+# -------------------- Electron 下载配置 --------------------
+# 配置 Electron 二进制文件的下载源
+electronDownload:
+  # 使用国内镜像加速下载 (适用于中国大陆用户)
+  # 默认: https://github.com/electron/electron/releases/download/
+  mirror: https://npmmirror.com/mirrors/electron/
+
+# -------------------- 更新渠道配置 --------------------
+# 是否根据版本号自动检测更新渠道
+# true: 从版本号的预发布标识中推断渠道
+#       例如: 1.0.0-beta.1 → beta 渠道, 1.0.0 → latest 渠道
+# false: 使用 publish.channel 指定的固定渠道
+detectUpdateChannel: true
+
+# -------------------- 包体积优化 --------------------
+# 从最终打包的 package.json 中移除 scripts 字段
+# 减小包体积，scripts 在打包后的应用中无用
+removePackageScripts: true
+
+# 从最终打包的 package.json 中移除 keywords 字段
+# 减小包体积，keywords 在打包后的应用中无用
+removePackageKeywords: true
