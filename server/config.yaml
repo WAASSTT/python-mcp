@@ -1,0 +1,139 @@
+# ============================================================
+# Elysia AI Server - 默认配置模板
+# 用户配置请在 data/.config.yaml 中覆盖
+# ============================================================
+
+# 服务器配置
+server:
+  ip: 0.0.0.0
+  port: 30000
+  http_port: 30003
+  websocket: /ws
+  auth_key: ""
+  timezone_offset: "+8"
+  auth:
+    enabled: false
+    allowed_devices: []
+
+# 日志配置
+log:
+  log_level: INFO  # DEBUG | INFO | WARN | ERROR
+  log_dir: logs
+  log_file: server.log
+  data_dir: data
+
+# VAD 配置 - 语音活动检测
+vad:
+  default: SileroVAD
+  providers:
+    SileroVAD:
+      type: SileroVAD
+      threshold: 0.5
+      threshold_low: 0.3
+      min_silence_duration_ms: 200
+      model_dir: models/snakers4_silero-vad
+
+# ASR 配置 - 语音识别
+asr:
+  default: DoubaoStreamASR
+  providers:
+    DoubaoStreamASR:
+      type: DoubaoStreamASR
+      appid: ""  # 在 data/.config.yaml 中配置
+      access_token: ""
+      cluster: volcengine_input_common
+      stream_mode: bigmodel_async
+      resource_id: volc.seedasr.sauc.duration
+      end_window_size: 800
+      output_dir: tmp/asr
+
+# LLM 配置 - 大语言模型
+llm:
+  default: ChatGLMLLM
+  providers:
+    AliLLM:
+      type: openai
+      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key: ""  # 在 data/.config.yaml 中配置
+      model: qwen-turbo
+      temperature: 0.7
+      max_tokens: 500
+      stream: true
+
+    ChatGLMLLM:
+      type: openai
+      api_base: https://open.bigmodel.cn/api/paas/v4
+      api_key: ""  # 在 data/.config.yaml 中配置
+      model: glm-4-flash
+      stream: true
+
+    OpenAILLM:
+      type: openai
+      api_base: https://api.openai.com/v1
+      api_key: ""
+      model: gpt-4-turbo-preview
+      temperature: 0.7
+      max_tokens: 2000
+      stream: true
+
+# TTS 配置 - 语音合成
+tts:
+  default: EdgeTTS
+  providers:
+    HuoshanDoubleStreamTTS:
+      type: HuoshanDoubleStreamTTS
+      ws_url: wss://openspeech.bytedance.com/api/v3/tts/bidirection
+      appid: ""
+      access_token: ""
+      resource_id: volc.service_type.10029
+      voice: zh_female_xinlingjitang_moon_bigtts
+      speed: 0
+
+    EdgeTTS:
+      type: EdgeTTS
+      voice: zh-CN-XiaoxiaoNeural
+
+# vLLM 配置 - 视觉语言模型
+vllm:
+  default: ChatGLM
+  providers:
+    chatglm:
+      type: openai
+      api_base: https://open.bigmodel.cn/api/paas/v4
+      api_key: ""
+      model: glm-4v-flash
+
+# Intent 配置 - 意图识别
+intent:
+  default: function_call
+  providers:
+    function_call:
+      type: function_call
+      functions: []
+
+# Memory 配置 - 对话记忆
+memory:
+  default: nomem
+  providers:
+    mem_local_short:
+      type: mem_local_short
+    nomem:
+      type: nomem
+
+# 插件配置
+plugins:
+  get_weather:
+    api_key: ""
+    api_host: ""
+    default_location: "北京"
+
+# 优化配置
+optimization:
+  enable_cache: true
+  cache_ttl: 3600
+  enable_pooling: true
+  pool_size: 10
+  enable_gc_optimization: true
+  gc_interval: 300
+  enable_metrics: true
+  metrics_interval: 60

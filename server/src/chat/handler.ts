@@ -1,8 +1,7 @@
 import { ContextDataProvider } from "@/chat/context-provider";
 import { Dialogue } from "@/chat/dialogue";
 import { PromptManager } from "@/chat/prompt-manager";
-import { PluginManager } from "@/plugins/plugin-manager";
-import type { ToolManager } from "@/providers/tools";
+import type { McpExecutor } from "@/mcp/mcp-executor";
 import type { Message } from "@/types/providers";
 import type { Logger } from "@/utils/logger";
 
@@ -29,35 +28,27 @@ export interface ChatRequest {
 
 /**
  * 聊天处理器
- * 集成对话管理、提示词、上下文和插件系统
- * @deprecated Use ToolManager instead of PluginManager
+ * 集成对话管理、提示词、上下文和 MCP 工具系统
  */
 export class ChatHandler {
   private dialogues: Map<string, Dialogue> = new Map();
   private promptManager: PromptManager;
   private contextProvider: ContextDataProvider;
-  private pluginManager?: PluginManager;
-  private toolManager?: ToolManager;
+  private mcpExecutor?: McpExecutor;
   private config: ChatConfig;
   private logger: Logger;
 
   constructor(
     promptManager: PromptManager,
     contextProvider: ContextDataProvider,
-    pluginManagerOrToolManager: PluginManager | ToolManager,
+    mcpExecutor: McpExecutor,
     logger: Logger,
     config: ChatConfig = {},
   ) {
     this.promptManager = promptManager;
     this.contextProvider = contextProvider;
+    this.mcpExecutor = mcpExecutor;
     this.logger = logger;
-
-    // 兼容新旧系统
-    if ("getAllTools" in pluginManagerOrToolManager) {
-      this.toolManager = pluginManagerOrToolManager as ToolManager;
-    } else {
-      this.pluginManager = pluginManagerOrToolManager as PluginManager;
-    }
 
     this.config = {
       enableDialogue: true,
@@ -77,68 +68,40 @@ export class ChatHandler {
     tools?: any[];
     systemPrompt?: string;
   }> {
-    const { message, sessionId = "default", speakerName, deviceId: _deviceId } = request;
+    const { message, sessionId = "default", speakerName, deviceId } = request;
 
     // 1. 获取或创建对话
-    let dialogue = this.getOrCreateDialogue(sessionId);
+    const dialogue = this.getOrCreateDialogue(sessionId);
 
-    // 2. 解析说话人信息
-    const { speaker, content } = this.promptManager.parseSpeakerMessage(message);
-    const finalSpeakerName = speaker || speakerName;
+    // 2. 添加用户消息
+    dialogue.addUserMessage(message);
 
-    // 3. 添加用户消息
-    dialogue.addUserMessage(content, finalSpeakerName);
-
-    // 4. 构建系统提示词
+    // 3. 构建系统提示词
     let systemPrompt: string | undefined;
     if (this.config.enablePrompt) {
       const contextData = this.config.enableContext ? await this.contextProvider.fetchAll() : "";
 
-      // 获取记忆摘要
-      const recentMessages = dialogue.getRecentMessages(5);
-      const memory = this.formatMemory(recentMessages);
-
       systemPrompt = await this.promptManager.buildSystemPrompt({
+        speakerName,
         currentTime: this.getCurrentTime(),
+        memory: this.formatMemory(dialogue.getRecentMessages(10)),
         dynamicContext: contextData,
-        memory,
-        speakerName: finalSpeakerName,
       });
     }
 
-    // 5. 获取对话历史
-    const messages = dialogue.getLLMDialogue();
-
-    // 6. 添加系统提示词
-    if (systemPrompt && messages[0]?.role !== "system") {
-      messages.unshift({
-        role: "system",
-        content: systemPrompt,
-      });
-    }
-
-    // 7. 获取工具定义
+    // 4. 获取工具定义（使用 MCP 系统）
     let tools: any[] | undefined;
-    if (this.config.enablePlugins) {
-      if (this.toolManager) {
-        // 使用新的 ToolManager
-        const allTools = await this.toolManager.getAllTools();
-        tools = Object.values(allTools).map((tool: any) => ({
-          type: "function",
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.parameters,
-          },
-        }));
-      } else if (this.pluginManager) {
-        // 向后兼容旧的 PluginManager
-        tools = this.pluginManager.getToolDefinitions();
-      }
+    if (this.config.enablePlugins && this.mcpExecutor) {
+      const mcpTools = (await import("@/mcp/mcp-registry")).McpRegistry.exportForLLM();
+      tools = mcpTools.map((tool) => ({
+        type: "function",
+        function: tool,
+      }));
     }
 
+    // 5. 返回格式化的消息
     return {
-      messages,
+      messages: dialogue.getLLMDialogue(),
       tools,
       systemPrompt,
     };
@@ -165,51 +128,52 @@ export class ChatHandler {
       // 添加助手消息（包含工具调用）
       dialogue.addAssistantMessage(response.content, response.tool_calls);
 
-      // 执行工具
+      // 执行工具（使用 MCP 系统）
       const toolResults = await Promise.all(
         response.tool_calls.map(async (toolCall: any) => {
           let result;
 
-          if (this.toolManager) {
-            // 使用新的 ToolManager
+          if (this.mcpExecutor) {
             try {
-              const toolResult = await this.toolManager.handleLLMFunctionCall(
+              const mcpResult = await this.mcpExecutor.execute(
+                toolCall.function.name,
+                JSON.parse(toolCall.function.arguments || "{}"),
                 {
-                  sessionId,
-                  deviceId: sessionId,
-                },
-                {
-                  id: toolCall.id,
-                  name: toolCall.function.name,
-                  arguments: toolCall.function.arguments,
+                  context: {
+                    sessionId,
+                    userId: sessionId,
+                    timestamp: Date.now(),
+                  },
                 },
               );
 
               result = {
-                success: toolResult.action !== "ERROR",
-                result: toolResult.data || toolResult.response,
-                error: toolResult.action === "ERROR" ? toolResult.response : undefined,
+                success: mcpResult.success,
+                result: mcpResult.data,
+                error: mcpResult.error,
               };
             } catch (error: any) {
+              this.logger.error(`[ChatHandler] MCP 工具执行失败:`, error);
               result = {
                 success: false,
                 error: error.message,
               };
             }
-          } else if (this.pluginManager) {
-            // 向后兼容旧的 PluginManager
-            result = await this.pluginManager.executeFromToolCall(toolCall);
           } else {
             result = {
               success: false,
-              error: "No tool manager available",
+              error: "MCP executor not available",
             };
           }
 
-          // 添加工具响应消息
-          dialogue.addToolMessage(JSON.stringify(result.result || result), toolCall.id);
+          // 添加工具结果到对话
+          dialogue.addToolMessage(JSON.stringify(result), toolCall.id);
 
-          return result;
+          return {
+            toolCallId: toolCall.id,
+            name: toolCall.function.name,
+            result,
+          };
         }),
       );
 

@@ -6,7 +6,12 @@ bun.lockb
 dist/
 *.tsbuildinfo
 
-# Environment variables - 生产配置包含敏感信息
+# 用户配置文件 - 包含 API 密钥等敏感信息
+data/.config.yaml
+data/*.yaml
+!data/.config.yaml.example
+
+# 旧的环境变量文件（已废弃，改用 YAML）
 .env
 .env.local
 .env.*.local
@@ -53,6 +58,6 @@ coverage/
 .cache/
 *.pid
 
-#
-models/
+
 music/
+models/
