@@ -101,9 +101,9 @@ export class UIController {
   /**
    * 显示连接信息
    */
-  public displayConnectionInfo(otaUrl: string, wsUrl?: string): void {
+  public displayConnectionInfo(serverUrl: string, wsUrl?: string): void {
     logger.info("连接信息:");
-    logger.info(`  OTA地址: ${otaUrl}`);
+    logger.info(`  服务器地址: ${serverUrl}`);
     if (wsUrl) {
       logger.info(`  WebSocket地址: ${wsUrl}`);
     }

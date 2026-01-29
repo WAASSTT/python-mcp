@@ -26,7 +26,7 @@ export const useAppStore = defineStore("app", () => {
   const deviceName = ref("Electron Desktop Client");
   const clientId = ref("electron_desktop_client");
   const token = ref("");
-  const otaUrl = ref("http://127.0.0.1:30003/xiaozhi/ota/");
+  const serverUrl = ref("http://127.0.0.1:30000");
 
   // 计算属性
   const connectionStatus = computed(() => {
@@ -54,7 +54,7 @@ export const useAppStore = defineStore("app", () => {
     deviceName.value = config.deviceName;
     clientId.value = config.clientId;
     token.value = config.token || "";
-    otaUrl.value = app.getOTAUrl();
+    serverUrl.value = app.getServerUrl();
 
     // 设置回调
     const uiController = app.getUIController();
@@ -125,7 +125,7 @@ export const useAppStore = defineStore("app", () => {
       clientId: clientId.value,
       token: token.value,
     });
-    app.updateOTAUrl(otaUrl.value);
+    app.updateServerUrl(serverUrl.value);
 
     // 连接
     const success = await app.connect();
@@ -240,12 +240,12 @@ export const useAppStore = defineStore("app", () => {
   }
 
   /**
-   * 更新 OTA URL
+   * 更新服务器 URL
    */
-  function updateOTAUrl(url: string) {
-    otaUrl.value = url;
+  function updateServerUrl(url: string) {
+    serverUrl.value = url;
     if (app) {
-      app.updateOTAUrl(url);
+      app.updateServerUrl(url);
     }
   }
 
@@ -282,7 +282,7 @@ export const useAppStore = defineStore("app", () => {
     deviceName,
     clientId,
     token,
-    otaUrl,
+    serverUrl,
 
     // 方法
     initialize,
@@ -293,7 +293,7 @@ export const useAppStore = defineStore("app", () => {
     stopRecording,
     interruptAndStartRecording,
     updateDeviceConfig,
-    updateOTAUrl,
+    updateServerUrl,
     getMCPManager,
     destroy,
   };

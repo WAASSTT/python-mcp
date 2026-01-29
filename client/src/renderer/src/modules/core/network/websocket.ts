@@ -5,7 +5,7 @@
 import type { DeviceConfig } from "../../config/manager";
 import { logger } from "../../utils/logger";
 import { getModernAudioPlayer } from "../audio/modern-player";
-import { webSocketConnect } from "./ota-connector";
+import { webSocketConnect } from "./ws-connector";
 
 export type ConnectionStateCallback = (isConnected: boolean) => void;
 export type SessionStateCallback = (isSpeaking: boolean) => void;
@@ -33,15 +33,15 @@ export class WebSocketHandler {
   /**
    * 连接到服务器
    */
-  public async connect(otaUrl: string, config: DeviceConfig): Promise<boolean> {
+  public async connect(serverUrl: string, config: DeviceConfig): Promise<boolean> {
     try {
       logger.info("正在连接服务器...");
 
       // 断开现有连接
       this.disconnect();
 
-      // 通过 OTA 获取 WebSocket 连接
-      const ws = await webSocketConnect(otaUrl, config);
+      // 直接连接到本地服务端 WebSocket
+      const ws = await webSocketConnect(serverUrl, config);
       if (!ws) {
         logger.error("创建WebSocket连接失败");
         return false;

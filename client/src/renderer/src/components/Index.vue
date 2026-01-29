@@ -166,14 +166,14 @@ function handleEmojiClick() {
 
 // 自动连接
 async function autoConnect() {
-  if (!appStore.otaUrl) {
-    console.error('[Index] OTA地址未配置');
-    message.error('OTA服务器地址未配置');
+  if (!appStore.serverUrl) {
+    console.error('[Index] 服务器地址未配置');
+    message.error('服务器地址未配置');
     return;
   }
 
   try {
-    console.log('[Index] 开始连接，OTA地址:', appStore.otaUrl);
+    console.log('[Index] 开始连接到服务器:', appStore.serverUrl);
     connecting.value = true;
 
     // 初始化应用
@@ -199,7 +199,7 @@ onMounted(async () => {
   console.log('[Index] 页面加载，准备自动连接...');
   console.log('[Index] 当前连接状态:', {
     isConnected: appStore.isConnected,
-    otaUrl: appStore.otaUrl,
+    serverUrl: appStore.serverUrl,
   });
 
   // 等待500ms后自动连接

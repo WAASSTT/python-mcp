@@ -22,7 +22,7 @@ export class App {
 
   // 配置
   private deviceConfig: DeviceConfig;
-  private otaUrl: string;
+  private serverUrl: string;
 
   // 状态
   private isConnected = false;
@@ -32,7 +32,7 @@ export class App {
     // 加载配置
     this.deviceConfig = configManager.loadDeviceConfig();
     const connectionConfig = configManager.loadConnectionConfig();
-    this.otaUrl = connectionConfig.otaUrl;
+    this.serverUrl = connectionConfig.serverUrl;
   }
 
   /**
@@ -223,15 +223,15 @@ export class App {
 
     // 保存配置
     configManager.saveDeviceConfig(this.deviceConfig);
-    configManager.saveConnectionConfig({ otaUrl: this.otaUrl });
+    configManager.saveConnectionConfig({ serverUrl: this.serverUrl });
 
     // 显示配置信息
     this.uiController.displayDeviceConfig(this.deviceConfig);
-    this.uiController.displayConnectionInfo(this.otaUrl);
+    this.uiController.displayConnectionInfo(this.serverUrl);
 
     // 连接 WebSocket
     const success = await this.websocketHandler.connect(
-      this.otaUrl,
+      this.serverUrl,
       this.deviceConfig
     );
     if (!success) {
@@ -352,19 +352,19 @@ export class App {
   }
 
   /**
-   * 获取 OTA URL
+   * 获取服务器 URL
    */
-  public getOTAUrl(): string {
-    return this.otaUrl;
+  public getServerUrl(): string {
+    return this.serverUrl;
   }
 
   /**
-   * 更新 OTA URL
+   * 更新服务器 URL
    */
-  public updateOTAUrl(url: string): void {
-    this.otaUrl = url;
-    configManager.saveConnectionConfig({ otaUrl: url });
-    logger.info("OTA地址已更新");
+  public updateServerUrl(url: string): void {
+    this.serverUrl = url;
+    configManager.saveConnectionConfig({ serverUrl: url });
+    logger.info("服务器地址已更新");
   }
 
   /**

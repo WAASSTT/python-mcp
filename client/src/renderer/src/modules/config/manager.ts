@@ -10,7 +10,7 @@ export interface DeviceConfig {
 }
 
 export interface ConnectionConfig {
-  otaUrl: string;
+  serverUrl: string;
   wsUrl?: string;
 }
 
@@ -19,7 +19,7 @@ const STORAGE_KEYS = {
   DEVICE_NAME: "xz_device_name",
   CLIENT_ID: "xz_client_id",
   TOKEN: "xz_token",
-  OTA_URL: "xz_ota_url",
+  SERVER_URL: "xz_server_url",
   WS_URL: "xz_ws_url",
 } as const;
 
@@ -77,9 +77,9 @@ class ConfigManager {
    */
   public loadConnectionConfig(): ConnectionConfig {
     return {
-      otaUrl:
-        localStorage.getItem(STORAGE_KEYS.OTA_URL) ||
-        "http://127.0.0.1:30003/xiaozhi/ota/",
+      serverUrl:
+        localStorage.getItem(STORAGE_KEYS.SERVER_URL) ||
+        "http://127.0.0.1:30000",
       wsUrl: localStorage.getItem(STORAGE_KEYS.WS_URL) || undefined,
     };
   }
@@ -88,7 +88,7 @@ class ConfigManager {
    * 保存连接配置
    */
   public saveConnectionConfig(config: ConnectionConfig): void {
-    localStorage.setItem(STORAGE_KEYS.OTA_URL, config.otaUrl);
+    localStorage.setItem(STORAGE_KEYS.SERVER_URL, config.serverUrl);
     if (config.wsUrl) {
       localStorage.setItem(STORAGE_KEYS.WS_URL, config.wsUrl);
     }

@@ -41,8 +41,7 @@ export {
 // 网络模块
 export {
   webSocketConnect,
-  type OTAResponse,
-} from "./core/network/ota-connector";
+} from "./core/network/ws-connector";
 export {
   getWebSocketHandler,
   WebSocketHandler,
